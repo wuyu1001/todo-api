@@ -1,0 +1,764 @@
+var app = {
+    cf_getTargetTags:function() {
+        var TargetTags = {};
+        var cf_getCatID = function (adGroupId) {
+            var categoryId;
+            $.ajax({
+                type: "POST",
+                url: "https://subway.simba.taobao.com/adgroup/getAdGroupWithCategory.htm?adGroupId=" + adGroupId,
+                data: null,
+                async: false,
+                dataType: "json",
+                success: function (data) { if (data.code == 200) { categoryId = data.result.adGroupDTO.categoryId; }; },
+                error: function () { alert("error:getCatID"); }
+            });
+            return categoryId;
+        };//new Function("adGroupId", getcfService("site/subway-get-cat-ids", User));
+        var catId = cf_getCatID(UriInfo.adGroupId);
+        if (!catId) return;
+        var fristCat = catId.split(' ')[0];
+        //优质人群  节日人群  同类店铺人群 付费广告/活动人群
+        for (var crowdType = 0; crowdType <= 3; crowdType++) {
+            var cf_crowdTemplateGetLayoutExt = function (crowdType, UriInfo, User) {
+                var result = {};
+                $.ajax({
+                    type: "POST", url: "https://subway.simba.taobao.com/crowdTemplate/getLayoutExt.htm?bizType=1&productId=101001005&crowdType=" + crowdType + "&adgroupId=" + UriInfo.adGroupId,
+                    data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                    async: false, dataType: "json",
+                    success: function (data) {
+                        if (data.code == 200) { result = data.result; };
+                    },
+                    error: function () { }
+                });
+                return result;
+
+            };// new Function("crowdType", "UriInfo", "User", getcfService("site/subway-crowd-template-get-layout-ext", User));
+            var result = cf_crowdTemplateGetLayoutExt(crowdType, UriInfo, User);
+            for (var indx in result) {
+                var templateId = result[indx].id;
+                var dimDTOs = result[indx].dimDTOs;
+                for (var dd in dimDTOs) {
+                    var tagOptions = dimDTOs[dd].tagOptions;
+                    for (var tp in tagOptions) {
+                        var tagName = tagOptions[tp].tagName;
+                        var tagCode = '{"dimId":"' + tagOptions[tp].dimId + '","tagId":"' + tagOptions[tp].tagId + '","tagName":"' + tagOptions[tp].tagName + '","optionGroupId":"' + tagOptions[tp].optionGroupId + '"}';
+                        if (!TargetTags[tagName]) {
+                            TargetTags[tagName] = {
+                                "tagName": tagName,
+                                "templateId": templateId,
+                                "tagCode": tagCode
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        //天气人群  人口属性人群
+        var cf_crowdTemplateGetLayoutExtCat = function (firstCat, User) {
+            var result = {};
+            $.ajax({
+                type: "POST",
+                url: "https://subway.simba.taobao.com/crowdTemplate/getLayoutExt.htm?productId=101001005&bizType=1&firstCat=" + fristCat,
+                data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                async: false, dataType: "json",
+                success: function (data) {
+                    if (data.code == 200) {
+                        result = data.result;
+                    };
+                },
+                error: function () { }
+            });
+            return result;
+        };//new Function("fristCat", "User", getcfService("site/subway-crowd-template-get-layout-ext-cat", User));
+        var result = cf_crowdTemplateGetLayoutExtCat(fristCat, User);
+        for (var indx in result) {
+            var templateId = result[indx].id;
+            var dimDTOs = result[indx].dimDTOs;
+            for (var dd in dimDTOs) {
+                var tagOptions = dimDTOs[dd].tagOptions;
+                for (var tp in tagOptions) {
+                    var tagName = tagOptions[tp].tagName;
+                    var tagCode = '{"dimId":"' + tagOptions[tp].dimId + '","tagId":"' + tagOptions[tp].tagId + '","tagName":"' + tagOptions[tp].tagName + '","optionGroupId":"' + tagOptions[tp].optionGroupId + '"}';
+                    if (!TargetTags[tagName]) {
+                        TargetTags[tagName] = {
+                            "tagName": tagName,
+                            "templateId": templateId,
+                            "tagCode": tagCode
+                        };
+                    };
+                };
+            };
+        };
+        return TargetTags;
+    },
+    SetUserCrowdList: function (aList, itemId, categoryId) {
+        $("#uaList").html("");
+        for (var id in aList) {
+            var strUI = '<span id="' + aList[id]['id'] + '">'
+                //+ '[' + (aList[id].ImpDate).substring(0, 10)
+                + ']. '
+                + (itemId == aList[id].itemId ? '<span class="layui-badge layui-bg-green">自身</span>' : '<span class="layui-badge layui-bg-orange">同类</span>')
+                + '.' + aList[id].title + '[数量:' + aList[id].count + ']' + ' <div class="layui-btn-group">' + '<button class="layui-btn layui-btn-mini layui-btn-normal setbt" CrowdData="' + aList[id].data + '">导入当前宝贝</button>'
+                +'<button class="layui-btn layui-btn-mini layui-btn-warm setbt02" CrowdData="'+aList[id].data+'">同步溢价</button>'
+                + '<button class="layui-btn layui-btn-mini layui-btn-danger delbt" aid="' + aList[id]['id'] + '">删除</button></div>' + '<hr class="layui-bg-cyan">' + '</span>'; $("#uaList").append(strUI)
+        };
+
+
+        $(".setbt").click(function () {
+            var targetS = $(this).attr("CrowdData");
+            //var cf_getTargetTags = new Function(getcfService("site/get-crowd-yun-data-daoru-js", User));
+            var TargetTags = app.cf_getTargetTags(); var targetArr = targetS.split("#");
+            var targetings = new Array();
+            for (var i = 0; i < targetArr.length; i++) {
+                var tag = targetArr[i].split('$');
+                var tagName = tag[0].split(',');
+                var discount = tag[1];
+                var onlineStatus = tag[2];
+                var tagList = new Array();
+                var templateId;
+                if (!TargetTags[tagName[0]]) { continue };
+
+                for (var j = 0; j < tagName.length; j++) { tagList.push(TargetTags[tagName[j]].tagCode); templateId = TargetTags[tagName[j]].templateId };
+                targetings.push('{"crowdDTO":{"templateId":"' + templateId + '","name":"' + tag[0] + '","tagList":[' + tagList.join(',') + ']}' + ',"isDefaultPrice":0,"discount":' + discount + ',"onlineStatus":"' + onlineStatus + '"}')
+            } var postData = 'productId=101001005&bizType=1&' + 'adgroupId=' + UriInfo.adGroupId + '&targetings=[' + targetings.join(',') + ']' + '&adgroupIdList=["' + UriInfo.adGroupId + '"]&sla=json&isAjaxRequest=true&token=' + User.token;
+
+            var cf_adgroupTargetingAddBatch = function (postData) {
+                var ret = false;
+                $.ajax({
+                    type: "POST", async: false,
+                    url: "https://subway.simba.taobao.com/adgroupTargeting/addBatch.htm",
+                    data: postData, async: false, success: function (data) { ret = true; }, error: function () { }
+                });
+                return ret;
+            };// new Function("postData", getcfService("site/subway-adgroup-targeting-add-batch", User));
+
+            if (cf_adgroupTargetingAddBatch(postData)) {
+                var cf_getCrowdList = function () {
+                    var index = layer.load(0, { shade: false });
+                    var cf_getCrowdListData = function (UriInfo, User) {
+                        var TargetingList = {};
+                        $.ajax({
+                            type: "POST",
+                            url: "https://subway.simba.taobao.com/adgroupTargeting/findAdgroupTargetingList.htm?adgroupId=" + UriInfo.adGroupId + "&productId=101001005&bizType=1",
+                            data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                            dataType: "json",
+                            async: false,
+                            success: function (data) {
+                                if (data.code == 200) { TargetingList = data.result; };
+                            }, error: function () { alert("error"); }
+                        });
+                        return TargetingList;
+                    };// new Function("UriInfo", "User", getcfService("site/subway-get-crowd-list-js", User));
+                    var TargetingList = cf_getCrowdListData(UriInfo, User);
+                    adTargetingList = {};
+                    for (var i = 0; i < TargetingList.length; i++) {
+                        var iid = TargetingList[i].crowdDTO.id;
+                        if (!adTargetingList[iid]) {
+                            adTargetingList[iid] = {
+                                "cid": TargetingList[i].id,
+                                "iid": TargetingList[i].crowdDTO.id,
+                                "onlineStatus": TargetingList[i].onlineStatus,
+                                "onlineState": TargetingList[i].crowdDTO.onlineState,
+                                "discount": parseInt(TargetingList[i].discount - 100).toFixed(0),
+                                "name": TargetingList[i].crowdDTO.name
+                            };
+                        };
+                    };
+                    var cf_getCwrodRptData = function () {
+                        var index = layer.load(0, { shade: false });
+                        var startDate = $("#LAY_rqrange_s").val();
+                        var endDate = $("#LAY_rqrange_e").val();
+                        var theDate = laydate.now();
+                        var postUrl;
+                        if (startDate == "" && endDate == "") {
+                            startDate = theDate;
+                            endDate = theDate;
+                            $("#LAY_rqrange_s").val(startDate);
+                            $("#LAY_rqrange_e").val(endDate);
+                        };
+                        var rptBpp4pCrowdSubwayList = {};
+                        if (startDate == theDate) {
+                            rptBpp4pCrowdSubwayList = rptBpp4pCrowdRealtimeSubwayList(theDate, UriInfo, User);
+                        } else {
+                            if (startDate > endDate) {
+                                layer.msg("开始日期不能大于结束日期！请重新选择！");
+                                layer.close(index);
+                                return;
+                            } else {
+                                if (endDate >= theDate) {
+                                    layer.msg("报表数据不能于实时(今日)同时拉取！请设置截止日期早于今日！");
+                                    layer.close(index);
+                                    return;
+                                };
+                                rptBpp4pCrowdSubwayList = rptBpp4pCrowdSubwayListFun(startDate, endDate, UriInfo, User);
+                            };
+                        };
+                        for (var iid in adTargetingList) {
+                            adTargetingList[iid].impression = null;
+                            adTargetingList[iid].click = null;
+                            adTargetingList[iid].ctr = null;
+                            adTargetingList[iid].cost = null;
+                            adTargetingList[iid].cpc = null;
+                            adTargetingList[iid].transactiontotal = null;
+                            adTargetingList[iid].roi = null;
+                            adTargetingList[iid].coverage = null;
+                            adTargetingList[iid].transactionshippingtotal = null;
+                            adTargetingList[iid].carttotal = null;
+                            adTargetingList[iid].favtotal = null;
+                            adTargetingList[iid].cpm = null;
+                        };
+                        for (var i = 0; i < rptBpp4pCrowdSubwayList.length; i++) {
+                            var iid = rptBpp4pCrowdSubwayList[i].crowdid;
+                            if (adTargetingList[iid]) {
+                                adTargetingList[iid].impression = rptBpp4pCrowdSubwayList[i].impression ? (rptBpp4pCrowdSubwayList[i].impression / 1).toFixed(0) : 0;
+                                adTargetingList[iid].click = rptBpp4pCrowdSubwayList[i].click ? (rptBpp4pCrowdSubwayList[i].click / 1).toFixed(0) : 0;
+                                adTargetingList[iid].ctr = rptBpp4pCrowdSubwayList[i].ctr ? (rptBpp4pCrowdSubwayList[i].ctr / 1).toFixed(2) : "0.00";
+                                adTargetingList[iid].cost = rptBpp4pCrowdSubwayList[i].cost ? (parseFloat(rptBpp4pCrowdSubwayList[i].cost) / 100).toFixed(2) : "0.00";
+                                adTargetingList[iid].cpc = rptBpp4pCrowdSubwayList[i].cpc ? (parseFloat(rptBpp4pCrowdSubwayList[i].cpc) / 100).toFixed(2) : "0.00";
+                                adTargetingList[iid].transactiontotal = rptBpp4pCrowdSubwayList[i].transactiontotal ? (parseFloat(rptBpp4pCrowdSubwayList[i].transactiontotal) / 100).toFixed(2) : "0.00";
+                                adTargetingList[iid].roi = rptBpp4pCrowdSubwayList[i].roi ? parseFloat(rptBpp4pCrowdSubwayList[i].roi).toFixed(2) : "0.00";
+                                adTargetingList[iid].coverage = rptBpp4pCrowdSubwayList[i].coverage ? parseFloat(rptBpp4pCrowdSubwayList[i].coverage).toFixed(2) : "0.00";
+                                adTargetingList[iid].transactionshippingtotal = rptBpp4pCrowdSubwayList[i].transactionshippingtotal ? (rptBpp4pCrowdSubwayList[i].transactionshippingtotal / 1).toFixed(0) : 0;
+                                adTargetingList[iid].carttotal = rptBpp4pCrowdSubwayList[i].carttotal ? (rptBpp4pCrowdSubwayList[i].carttotal / 1).toFixed(0) : 0;
+                                adTargetingList[iid].favtotal = rptBpp4pCrowdSubwayList[i].favtotal ? (rptBpp4pCrowdSubwayList[i].favtotal / 1).toFixed(0) : 0;
+                                adTargetingList[iid].cpm = rptBpp4pCrowdSubwayList[i].cpm ? (parseFloat(rptBpp4pCrowdSubwayList[i].cpm) / 100).toFixed(2) : "0.00";
+                            };
+                        };
+                        //打印数据
+                        cf_outerTargetingDataUI(); layer.close(index);
+                    };// new Function(getcfService("site/get-crowd-rpt-js", User));
+                    cf_getCwrodRptData();
+                };// new Function(getcfService("site/get-crowd-list-js", User));
+                cf_getCrowdList();
+            }
+        });
+        $(".setbt02").click(function () { layer.msg('等待开发中...') });
+        $(".delbt").click(function () {
+            var aid = $(this).attr("aid");
+            var aData = { "id": aid, "itemId": itemId, "CategoryId": categoryId }; $.extend(aData, User);
+            var DelUserCrowd = function (postData) {
+                var ret = new Array();
+                $.ajax({
+                    type: "post",
+                    //url: "https://zhitongche.libangjie.com/index.php?r=site/del-crowd-yun-data",
+                    url:server_url+"/taobao/api?r=site/del-crowd-yun-data",
+                    contentType: "application/json", data: JSON.stringify(postData), async: false, dataType: "json",
+                    success: function (data, status) {
+                        if (data.code == 200) { ret = data.result };
+                        if (data.code != 200) {
+                            layer.alert(data.msg)
+                        }}
+                });
+                return ret;
+            };// new Function("postData", getcfService("site/del-crowd-yun-data-js", User));
+            var aList = DelUserCrowd(aData);
+            //var SetUserCrowdList = new Function("aList", "itemId", "categoryId", getcfService("site/set-crowd-yun-data-js", User));
+            app.SetUserCrowdList(aList, itemId, categoryId)
+        }); if (aList.length == 0) { $("#uaList").html("当前店铺未备份过人群包！") };
+        },
+    SetUserAreaList: function (aList) {
+        $("#uaList").html("");
+        for (var id in aList) {
+
+            var strUI = '<span id="ua' + aList[id]['id'] + '">'
+                + '[' + (aList[id].ImpDate) + '] '
+                + aList[id].Title
+                + ' <div class="layui-btn-group"><button class="layui-btn layui-btn-mini layui-btn-normal setbt" area="' + aList[id].cnt
+                + '">应用到当前计划</button><button class="layui-btn layui-btn-mini layui-btn-danger delbt" aid="' + aList[id].id
+                + '">删除</button></div>'
+                + '<hr class="layui-bg-cyan">' + '</span>';
+            //console.log(aList[id].Title)
+            $("#uaList").append(strUI);
+        };
+        $(".setbt").click(function () {
+            var camId = getUriInfo().campaignId;
+            if (camId == null) {
+                layer.msg("进入页面以后再备份地区数据！");
+            };
+            var area = $(this).attr("area");
+            var AreaUpdate = function (compaignId, areaState) {
+                var ret = false;
+                var postdata = "sla=json&isAjaxRequest=true&token=" + User.token;
+                $.ajax({
+                    type: "POST",
+                    url: "https://subway.simba.taobao.com/area/update.htm?campaignId=" + campaignId + "&areaState=" + areaState,
+                    data: postdata, async: false,
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.code == 200) { ret = true; };
+                    }, error: function () { }
+                });
+                return ret;
+            };// new Function("campaignId", "areaState", getcfService("site/get-area-yun-daoru-js", User));
+            if (AreaUpdate(camId, area)) {
+                layer.msg("当前计划地区已更新！");
+            } else {
+                layer.msg("地区更新失败请重试！");
+            };
+        });
+        $(".delbt").click(function () {
+            var aid = $(this).attr("aid")
+            var aData = { "id": aid };
+            $.extend(aData, User);
+            var DelUserArea = function (postData) {
+                var ret = new Array();
+                $.ajax({
+                    type: "post",
+                    dataType: "json",
+                    //url: "https://zhitongche.libangjie.com/index.php?r=site/del-area-yun-data",
+                    url:server_url+'/taobao/api?r=site/del-area-yun-data',
+                    contentType: "application/json",
+                    data: JSON.stringify(postData),
+                    async: false, success: function (data, status) {
+                        if (data.code == 200) { ret = data.result; }; if (data.code != 200) {
+                            layer.alert(data.msg)
+                        } }
+                });
+                return ret;
+            }//new Function("postData", getcfService("site/del-area-yun-data-js", User));
+            var aList = DelUserArea(aData);
+            //var SetUserAreaList = new Function("aList", getcfService("site/set-area-yun-data-js", User));
+            app.SetUserAreaList(aList);
+        });
+        if (aList.length == 0) {
+            $("#uaList").html("当前店铺未备份过地区！");
+        };
+    },
+    cf_getCwrodRptData:function () {
+        var index = layer.load(0, { shade: false });
+        var startDate = $("#LAY_rqrange_s").val();
+        var endDate = $("#LAY_rqrange_e").val();
+        var theDate = laydate.now();
+        var postUrl;
+        if (startDate == "" && endDate == "") {
+            startDate = theDate;
+            endDate = theDate;
+            $("#LAY_rqrange_s").val(startDate);
+            $("#LAY_rqrange_e").val(endDate);
+        };
+        var rptBpp4pCrowdSubwayList = {};
+        if (startDate == theDate) {
+            rptBpp4pCrowdSubwayList = rptBpp4pCrowdRealtimeSubwayList(theDate, UriInfo, User);
+        } else {
+            if (startDate > endDate) {
+                layer.msg("开始日期不能大于结束日期！请重新选择！");
+                layer.close(index);
+                return;
+            } else {
+                if (endDate >= theDate) {
+                    layer.msg("报表数据不能于实时(今日)同时拉取！请设置截止日期早于今日！");
+                    layer.close(index);
+                    return;
+                };
+                rptBpp4pCrowdSubwayList = rptBpp4pCrowdSubwayListFun(startDate, endDate, UriInfo, User);
+            };
+        };
+        for (var iid in adTargetingList) {
+            adTargetingList[iid].impression = null;
+            adTargetingList[iid].click = null;
+            adTargetingList[iid].ctr = null;
+            adTargetingList[iid].cost = null;
+            adTargetingList[iid].cpc = null;
+            adTargetingList[iid].transactiontotal = null;
+            adTargetingList[iid].roi = null;
+            adTargetingList[iid].coverage = null;
+            adTargetingList[iid].transactionshippingtotal = null;
+            adTargetingList[iid].carttotal = null;
+            adTargetingList[iid].favtotal = null;
+            adTargetingList[iid].cpm = null;
+        };
+        for (var i = 0; i < rptBpp4pCrowdSubwayList.length; i++) {
+            var iid = rptBpp4pCrowdSubwayList[i].crowdid;
+            if (adTargetingList[iid]) {
+                adTargetingList[iid].impression = rptBpp4pCrowdSubwayList[i].impression ? (rptBpp4pCrowdSubwayList[i].impression / 1).toFixed(0) : 0;
+                adTargetingList[iid].click = rptBpp4pCrowdSubwayList[i].click ? (rptBpp4pCrowdSubwayList[i].click / 1).toFixed(0) : 0;
+                adTargetingList[iid].ctr = rptBpp4pCrowdSubwayList[i].ctr ? (rptBpp4pCrowdSubwayList[i].ctr / 1).toFixed(2) : "0.00";
+                adTargetingList[iid].cost = rptBpp4pCrowdSubwayList[i].cost ? (parseFloat(rptBpp4pCrowdSubwayList[i].cost) / 100).toFixed(2) : "0.00";
+                adTargetingList[iid].cpc = rptBpp4pCrowdSubwayList[i].cpc ? (parseFloat(rptBpp4pCrowdSubwayList[i].cpc) / 100).toFixed(2) : "0.00";
+                adTargetingList[iid].transactiontotal = rptBpp4pCrowdSubwayList[i].transactiontotal ? (parseFloat(rptBpp4pCrowdSubwayList[i].transactiontotal) / 100).toFixed(2) : "0.00";
+                adTargetingList[iid].roi = rptBpp4pCrowdSubwayList[i].roi ? parseFloat(rptBpp4pCrowdSubwayList[i].roi).toFixed(2) : "0.00";
+                adTargetingList[iid].coverage = rptBpp4pCrowdSubwayList[i].coverage ? parseFloat(rptBpp4pCrowdSubwayList[i].coverage).toFixed(2) : "0.00";
+                adTargetingList[iid].transactionshippingtotal = rptBpp4pCrowdSubwayList[i].transactionshippingtotal ? (rptBpp4pCrowdSubwayList[i].transactionshippingtotal / 1).toFixed(0) : 0;
+                adTargetingList[iid].carttotal = rptBpp4pCrowdSubwayList[i].carttotal ? (rptBpp4pCrowdSubwayList[i].carttotal / 1).toFixed(0) : 0;
+                adTargetingList[iid].favtotal = rptBpp4pCrowdSubwayList[i].favtotal ? (rptBpp4pCrowdSubwayList[i].favtotal / 1).toFixed(0) : 0;
+                adTargetingList[iid].cpm = rptBpp4pCrowdSubwayList[i].cpm ? (parseFloat(rptBpp4pCrowdSubwayList[i].cpm) / 100).toFixed(2) : "0.00";
+            };
+        };
+        //打印数据
+        cf_outerTargetingDataUI(); layer.close(index);
+    },
+    SetUserKWList:function (aList, itemId, categoryId) {
+        $("#uaList").html("");
+
+        for (var id in aList) {
+            var strUI = '<span id="ua' + aList[id].id + '">'
+                //+ '[' + (aList[id].ImpDate).substring(0, 10) + ']. '
+                + (itemId == aList[id].itemId ? '<span class="layui-badge layui-bg-green">自身</span>' : '<span class="layui-badge layui-bg-orange">同类</span>')
+                + '.' + aList[id].title
+                + '[数量:' + aList[id].count + ']'
+                + '<p id="hidden_data_' + aList[id].id + '" hidden>' + aList[id].bidWordData + '</p>'
+                + ' <div class="layui-btn-group">'
+                + '<button class="layui-btn layui-btn-mini layui-btn-normal setbt" BidWordData="hidden_data_' + aList[id].id + '">导入当前宝贝</button>'
+                + '<button class="layui-btn layui-btn-mini layui-btn-warm setbt02" BidWordData="hidden_data_' + aList[id].id + '">还原出价</button>'
+                + '<button class="layui-btn layui-btn-mini layui-btn-danger delbt" aid="' + aList[id].id + '">删除</button></div>'
+                + '<hr class="layui-bg-cyan">'
+                + '</span>';
+            $("#uaList").append(strUI);
+        };
+        $(".setbt").click(function () {
+            var data_id = $(this).attr("BidWordData");
+            var keywords = $('#' + data_id).text();
+
+            $.ajax({
+                type: "post",
+                url: "https://subway.simba.taobao.com/bidword/add.htm",
+                //data: 'logsBidwordStr=""&adGroupId=' + UriInfo.adGroupId + '&keywords=' + keywords + '&sla=json&isAjaxRequest=true&token=' + User.token,
+
+                data: {
+                    logsBidwordStr: '',
+                    adGroupId: UriInfo.adGroupId,
+                    keywords: keywords,
+                    sla: 'json',
+                    isAjaxRequest: true,
+                    token: User.token
+                },
+
+                async: false,
+                success: function (data) {
+                    var cf_getBidWordData = function () {
+                        var index = layer.load(0, { shade: false });
+                        var ascTagId = function (x, y) { return (x["id"] > y["id"]) ? 1 : -1 };
+                        //获取关键词表
+                        $.ajax({
+                            type: "POST",
+                            url: "https://subway.simba.taobao.com/bidword/list.htm",
+                            data: "campaignId=" + UriInfo.campaignId + "&adGroupId=" + UriInfo.adGroupId + "&queryWord=&queryType=0&sla=json&isAjaxRequest=true&token=" + User.token,
+                            datatype: "json",
+                            async: true,
+                            success: function (data) {
+                                if (data.code == 200) {
+                                    var bidWordList = data.result;
+                                    adBidWordListData = {};
+                                    //释放数据
+                                    var keywordIds = new Array();
+                                    for (var i = 0; i < bidWordList.length; i++) {
+                                        var keyId = bidWordList[i].keywordId;
+                                        if (!adBidWordListData[keyId]) {
+                                            adBidWordListData[keyId] = {
+                                                "keywordId": bidWordList[i].keywordId,
+                                                "matchScope": bidWordList[i].matchScope,
+                                                "word": bidWordList[i].word,
+                                                "maxPrice": (bidWordList[i].maxPrice / 100).toFixed(2),
+                                                "isDefaultPrice": bidWordList[i].isDefaultPrice,
+                                                "maxMobilePrice": (bidWordList[i].maxMobilePrice / 100).toFixed(2),
+                                                "mobileIsDefaultPrice": bidWordList[i].mobileIsDefaultPrice,
+                                                "createTime": (bidWordList[i].createTime).substr(0, 8).replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")
+                                            };
+                                            var tags = "";
+                                            var tagsList = bidWordList[i].tags;
+                                            tagsList.sort(ascTagId);
+                                            for (var j = 0; j < tagsList.length; j++) {
+                                                tags = tags + tagsList[j].id;
+                                            };
+                                            adBidWordListData[keyId]["tags"] = tags;
+                                            keywordIds[i] = keyId;
+                                        };
+                                    };
+                                    //获取质量得分
+                                    $.ajax({
+                                        type: "POST",
+                                        url: "https://subway.simba.taobao.com/bidword/tool/adgroup/newscoreSplit.htm",
+                                        data: "adGroupId=" + UriInfo.adGroupId + "&bidwordIds=[" + keywordIds.join(',') + "]&sla=json&isAjaxRequest=true&token=" + User.token,
+                                        datatype: "json",
+                                        async: false,
+                                        success: function (data) {
+                                            var scoreList = data.result;
+                                            for (var i = 0; i < scoreList.length; i++) {
+                                                var keyId = scoreList[i].keywordId;
+                                                adBidWordListData[keyId]["qscore"] = scoreList[i].qscore;
+                                                adBidWordListData[keyId].wirelessQscore = scoreList[i].wirelessQscore;
+                                            };
+                                        },
+                                        error: function () { }
+                                    });
+                                    //打印数据
+                                    outerBidWordDataUI();
+                                    layer.close(index);
+                                };
+                            },
+                            error: function () { alert('error:getBidWordData'); }
+                        });
+
+                    };// new Function(getcfService("site/get-bid-word-yun-word-daoru-js", User));
+                    cf_getBidWordData();
+                },
+                error: function () { }
+            });
+        });
+        $(".setbt02").click(function () {
+            var sIds = getjqGridSelarrrow("#BidWordlist");
+            var kIds = new Array();
+            for (var s = 0; s < sIds.length; s++) {
+                var kId = jQuery("#BidWordlist").jqGrid('getCell', sIds[s], 'keywordId');
+                kIds.push(kId);
+            };
+            var data_id = $(this).attr("BidWordData");
+            var keywordStr = $('#' + data_id).text();
+            var GetKwJson = function (keywords) {
+                var obj = JSON.parse(keywords);
+                var ret = {};
+                for (var i in obj) {
+                    ret[obj[i].word] = {
+                        "keywordId": "", "matchScope": obj[i].matchScope,
+                        "isDefaultPrice": obj[i].isDefaultPrice,
+                        "maxPrice": obj[i].maxPrice,
+                        "maxMobilePrice": obj[i].maxMobilePrice,
+                        "mobileIsDefaultPrice": obj[i].mobileIsDefaultPrice
+                    }
+                };
+                return ret;
+            };// new Function("keywords", getcfService("site/get-bid-word-yun-word-restore-price-js", User));
+            var objKWData = GetKwJson(keywordStr);
+            var keywords = new Array();
+            for (var keyId in adBidWordListData) {
+                if (kIds.length > 0 && kIds.indexOf(keyId) == -1)
+                    continue;
+                if (objKWData[adBidWordListData[keyId].word]) {
+                    objKWData[adBidWordListData[keyId].word].keywordId = keyId;
+                    var wordStr = JSON.stringify(objKWData[adBidWordListData[keyId].word]);
+                    keywords.push(wordStr);
+                    adBidWordListData[keyId].matchScope = objKWData[adBidWordListData[keyId].word].matchScope;
+                    adBidWordListData[keyId].isDefaultPrice = objKWData[adBidWordListData[keyId].word].isDefaultPrice;
+                    adBidWordListData[keyId].maxPrice = (objKWData[adBidWordListData[keyId].word].maxPrice / 100).toFixed(2);
+                    adBidWordListData[keyId].maxMobilePrice = (objKWData[adBidWordListData[keyId].word].maxMobilePrice / 100).toFixed(2);
+                    adBidWordListData[keyId].mobileIsDefaultPrice = objKWData[adBidWordListData[keyId].word].mobileIsDefaultPrice;
+                };
+            };
+            var postData = 'keywords=[' + keywords.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+            $.ajax({
+                type: "POST",
+                url: "https://subway.simba.taobao.com/bidword/updatePrice.htm",
+                data: postData, async: false,
+                success: function (data) {
+                    layer.msg('出价已还原...');
+                    outerBidWordDataUI();
+                },
+                error: function () { }
+            });
+        });
+        $(".delbt").click(function () {
+            var aid = $(this).attr("aid");
+
+            //更新UriInfo
+            getUrlInfo();
+
+            var aData = { "id": aid, "itemId": itemId, "CategoryId": categoryId, campaignId: UriInfo.campaignId, adGroupId: UriInfo.adGroupId };
+            $.extend(aData, User);
+            var DelUserKW = function (postData) {
+                var ret = new Array();
+                $.ajax({
+                    type: "post",
+                    //url: "https://zhitongche.libangjie.com/index.php?r=site/del-bid-word-yun-word",
+                    url:server_url+'/taobao/api?r=site/del-bid-word-yun-word',
+                    contentType: "application/json",
+                    data: JSON.stringify(postData),
+                    async: false,
+                    dataType: "json",
+                    success: function (data, status) {
+                        if (data.code == 200) { ret = data.result }; if (data.code != 200) {
+                            layer.alert(data.msg)
+                        } }
+                });
+                return ret;
+            };// new Function("postData", getcfService("site/del-bid-word-yun-word-js", User));
+            var aList = DelUserKW(aData);;
+            //var SetUserKWList = new Function("aList", "itemId", "categoryId", getcfService("site/get-bid-word-yun-word-data-js", User));不再获取，直接调用自身
+            app.SetUserKWList(aList, itemId, categoryId);
+
+
+        });
+        if (aList.length == 0) {
+            $("#uaList").html("当前店铺未备份关键词！");
+        };
+    },
+    Tklcreate: function () {
+        layer.open({
+            title: "淘口令生成",
+            content: `<div style="margin-right: 50px; margin-top: 20px; ">
+
+                    <div class= "layui-form-item" >
+                        <label class="layui-form-label">宝贝链接</label>
+                        <div class="layui-input-block">
+                            <input id="createTKL" lay-verify="title" autocomplete="off" placeholder="请输入淘宝链接" class="layui-input"></div>                         
+                        </div>
+                    </div >`,
+            yes: function (index) {
+                var itemurl = $('#createTKL').val();
+                $.post(
+                    'http://taodaling.com/index/getTDL',
+                    {
+                        url:itemurl,
+                        cookieshangpin: '{GOODS_KOULING}', cookieyouhuiquan: '{QUAN_YHQJG} {QUAN_KOULING} {QUAN_YHQLJ}'
+                    },
+                    function (response) {
+                        console.log(response);
+                        layer.alert("淘口令是:" + JSON.parse(response)['info']);
+                    }
+                );            
+            }
+        })
+    }
+
+};
+
+jQuery(function ($) {
+    $("body").prepend(ret.result.html);
+
+    var getLoginWindow = function () {
+        var ret = {
+            "code": 200, "message": "success", "result": {
+                "html": `<div style="margin-right: 50px; margin-top: 20px; ">
+
+                    <div class= "layui-form-item" >
+                        <label class="layui-form-label">Key</label>
+                        <div class="layui-input-block">
+                            <input id="zhitongche_fuzdf_pwd" lay-verify="title" autocomplete="off" placeholder="请输入Key" class="layui-input" type="text">
+			</div>
+                        </div>
+                        <div id="zhitongche_fuzdf_error" style="margin:10px;text-align:center; color:#F00">
+
+                        </div>
+		 
+		</div >`}
+        };
+
+        var index_login_fdsafdsffgggg = layer.open({
+            type: 1,
+            content: ret.result.html,
+            area: ["400px", "260px"], btn: ['登录'], btnAlign: 'c',
+            title: '用户登录',
+
+            yes: function (index) {
+                var ret = false;
+                var postdata = { key: $('#zhitongche_fuzdf_pwd').val() };
+                //var postdata = { username: $('#zhitongche_fuzdf_account').val(), password: $('#zhitongche_fuzdf_pwd').val() };
+                $.ajax({
+                    type: 'POST',
+                    async: false,
+                    //url: 'https://zhitongche.libangjie.com/index.php?r=site/login',
+                    url: server_url + '/taobao/api?r=site/login',
+                    contentType: "application/json",
+                    dataType: "json",
+                    data: JSON.stringify(postdata),
+                    success: function (data) {
+                        if (data.code == 200) {
+                            ret = true;
+
+                        } else {
+                            $('#zhitongche_fuzdf_error').text(data.msg);
+                        }
+
+                    },
+                    error: function (e) {
+                        //console.log(e)
+                        //layer.alert('错误')
+                    }
+                });
+                if (ret) { layer.close(index); }
+                return false;
+            }
+        });
+    };// new Function(getcfService("get-login", {}));
+
+    $('#btnloginbtnloginbtnlogin').on('click', function () {
+        getLoginWindow();
+    });
+
+    var cf_getLoginUserInfo = function () {
+        var retUserInfo = {};
+        $.ajax({
+            url: "https://subway.simba.taobao.com/bpenv/getLoginUserInfo.htm", type: "POST", data: null, async: false, dataType: "json",
+            success: function (data) {
+                if (data.code == 200) {
+                    retUserInfo.token = data.result.token;
+                    retUserInfo.custId = data.result.custId;
+                    retUserInfo.nickName = data.result.nickName;
+                    retUserInfo.operName = data.result.operName;
+                }
+            },
+            error: function () { alert("error:getLoginUserInfo"); }
+        });
+
+        return retUserInfo;
+
+    }//new Function(getcfService("site/get-taobao-user-info", {}));
+    $.extend(User, cf_getLoginUserInfo());
+
+    if (User.nickName && User.token) {
+
+        //无人值守
+        $("#addCreative").click(function () {
+            new Function(getcfService('wrzs', User))();
+        });
+        //高级无人值守
+        $("#addCreativeGaoji").click(function () {
+
+            new Function(getcfService('gjwrzs', User))();
+        });
+        //自动规则优化助手
+        $("#AutoRunAdgroup").click(function () {
+            new Function(getcfService('zdgzyhzs',User))();
+        });
+
+
+
+
+
+        //地区管理
+        $("#UserAreaManger").click(function () {      
+            new Function(getcfService('dqgl', User))();
+        });
+
+        //人群优化       
+        $("#youhuarenqunbt").click(function () {            
+            new Function(getcfService('rqyh', User))();
+        });
+        //批量添加人群         
+        $("#MyButton06").click(function () {            
+            new Function(getcfService('pltjrq', User))();
+        });
+
+        //优化关键词
+        $("#WordYouhua").click(function () {            
+            new Function(getcfService('yhgjc', User))();
+        });
+
+
+        //关键词解析
+        $("#KeyWordParse").click(function () {            
+            new Function(getcfService('gjcjx', User))();
+        });
+        //地区城市分析           
+        $("#AreaCityParse").click(function () {            
+            new Function(getcfService('dqcsfx', User));
+        });
+
+        //淘口令  
+        $('#Tklcreate').click(app.Tklcreate);
+
+
+
+        var offs = $('#cb_fixed').offset();
+        $(window).scroll(function () {
+            var toTop = offs.top - $(window).scrollTop();
+            if (toTop < -1) {
+                $('#cb_fixed').attr("style", "position: fixed;top: 0;left: 0;right: 0;z-index:100000;");
+            } else {
+                $('#cb_fixed').attr("style", "");
+            }
+        });
+
+
+
+    }
+});

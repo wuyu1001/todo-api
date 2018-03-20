@@ -1,0 +1,440 @@
+﻿
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>houtai</title>
+    
+       
+       <link href="static/css/bootstrap.min.css" rel="stylesheet">
+       <link  href="static/css/style.css" rel="stylesheet" />
+       <script src="static/js/jquery_1.8.3.min.js"></script>
+       <script src="static/js/jquery-ui-1.8.21.min.js"></script>
+       <script src="static/js/jquery.dataTables.min.js"></script>
+	   <link rel="stylesheet" href="static/layui/css/layui.css">
+    
+      <script>
+       function check_getkey() {
+       if(document.getElementById('key').innerHTML=="key")
+       {
+         alert("请获取key！");
+       }
+       }
+      </script>
+  </head>
+  
+  <style>
+  
+ 
+  </style>
+  <body  style="background:#F7F7F7;">
+  
+  <nav class="navbar navbar-default" role="navigation">
+    <div class="container-fluid">
+    <div class="navbar-header">
+    
+    
+      <div class="row">
+     <div class="col-md-1">
+     </div>
+     
+     <div class="col-md-2">
+        <img src="static/icons/boss2.png" />
+    </div>
+    
+      <div class="col-md-2">
+     </div>
+    
+     <div class="col-md-8">
+      <a class="navbar-brand" href="#">你好老板</a>
+     </div>
+    </div>
+    </div>
+    </div>
+</nav>
+
+
+<div class="row">
+<div class="col-md-1"> </div>
+
+       <div class="col-md-1">
+                    <a href="login.jsp" title="General Info">
+                        <img src="static/icons/home.png" />
+                        <span style="text-align: center;">后台登录</span>
+                    </a>
+
+        </div>
+  
+  
+  <div class="col-md-10" >
+  
+          <div style="background:#F0F0F0;box-shadow: 2px 2px 2px #888888;">
+               <div>
+                   <div><h4>开通账户</h4></div>
+               </div>
+               
+         <div id="formid"  name= "myform1" method = 'post'  action = "">  
+               
+               <p>
+                 <button type="button" class="btn btn-primary btn-xs" id="getkey" >获取</button>
+                 <button type="button" class="btn btn-primary btn-xs"  id="register" onclick="check_getkey()" >提交</button>
+               </p>
+  
+  
+              <div class="row">
+   
+                   <div class="col-md-2">
+                         <label for="TB_ID">TB_ID</label>
+                   </div>
+     
+                  <div class="col-md-2">
+                           <input type="text" class="simple_field" id="TB_ID"/>
+                  </div>
+            
+                  <div class="col-md-1"></div>
+     
+     
+                  <div class="col-md-2">
+                          <label for="remake">备注</label>
+                  </div>
+        
+                  <div class="col-md-2">
+                         <input type="text" class="simple_field" id="remake"/>
+                  </div>
+      
+             </div>
+ 
+     <br/>
+               <div class="row">
+   
+                  <div class="col-md-2">
+                           <label for="starttime">创建时间</label>
+                  </div>
+     
+                  <div class="col-md-2">
+                                
+                                <input name="insert_Start_Timer" type="text" id="insert_Start_Timer" class="simple_field pick_date" />
+                         
+                    </div>
+    
+    
+                   <div class="col-md-1"></div>
+     
+                   <div class="col-md-2">
+                         <label for="endtime">结束时间</label>
+                   </div>
+      
+                   <div class="col-md-2">
+                          <input name="insert_End_Timer" type="text" id="insert_End_Timer" class="simple_field pick_date" />
+                    </div>
+                    
+                    
+                 </div>
+
+              <br/>
+    
+               <div class="row">
+                    <div class="col-md-2">
+                          <label for="key">注册key</label>
+                    </div>
+
+                    <div class="col-md-2">
+                         
+                         <label for="key" id="key">key</label>
+                    </div>
+        
+               </div>
+         </div>
+  </div>
+  
+  
+  
+  
+<div style="background:#F0F0F0;box-shadow: 2px 2px 2px #888888;">
+       <div>
+                <div><h4>更新账户</h4></div>
+                
+       </div>     
+       
+       <div id="update"  name= "update"> 
+                    <p>
+                   <button type="button" class="btn btn-primary btn-xs" name="change" id="change">修改</button>
+                    </p>
+           
+  
+                  <div class="row">
+                        <div class="col-md-2">
+                            <label for="TB_ID">TB_ID</label>
+                        </div>
+     
+                        <div class="col-md-2">                           
+                              <input type="text" class="simple_field" id="UpdataTB_ID"/>
+                        </div>
+                        
+                        <div class="col-md-1"></div>
+     
+                        <div class="col-md-2">
+                              <label for="remake">备注</label>   
+                        </div>
+        
+                       <div class="col-md-2">
+                               <input type="text" class="simple_field" id="Updataremake"/>
+                       </div>
+                  </div>
+                  
+                  <br/>
+                  
+                  <div class="row">
+   
+                      <div class="col-md-2">
+                           <label for="starttime">创建时间</label>
+                      </div>
+     
+                      <div class="col-md-2">  
+                           		 <input name="Updata_Start_Timer" type="text" id="Updata_Start_Timer" class="simple_field pick_date" />
+                       </div>
+                  
+                       <div class="col-md-1"></div>
+                  
+                       <div class="col-md-2">
+                             <label for="endtime">结束时间</label>
+                       </div> 
+                  
+                  
+                       <div class="col-md-2"> 
+                      		<input name="Updata_End_Timer" type="text" id="Updata_End_Timer" class="simple_field pick_date" />
+                        </div>
+                    </div>
+
+          <br/>
+    
+            <div class="row">
+                        <div class="col-md-2">                           
+                             <label for="key">注册key</label>                       
+                        </div>
+
+                        <div class="col-md-2">    
+                              <label for="getkey" id="key2">key</label>                             
+                        </div>
+                        
+                        
+                        <div class="col-md-1"></div>
+                        
+                        <div class="col-md-2">
+                                 <label for="registertime">注册时间</label>
+                        </div>
+
+                        <div class="col-md-2">
+                                   <label for="getregistertime"></label>
+                         </div> 
+                     </div> 
+      </div>
+  </div>
+  
+<div style="background:#F0F0F0;box-shadow: 2px 2px 2px #888888;">
+  
+   <div>
+         <div><h4>账户管理</h4></div>
+      
+
+ 
+            <div class="form-group form-group-sm">
+               <label class="col-sm-1 control-label">search</label>
+               <div class="col-sm-3">
+               <input class="simple_field" type="text" id="search">
+               </div>
+            
+                       <div class="dataTables_length" id="DataTables_Table_0_length">
+                       <label>每页显示 
+                       <select name="DataTables_Table_0_length" aria-controls="DataTables_Table_0" class="">
+                       <option value="10">10</option>
+                       <option value="25">25</option>
+                       <option value="50">50</option>
+                       <option value="100">100</option>
+                       </select> 条记录
+                       </label>
+                       </div>
+            
+            </div>
+
+    
+ 
+<table id="table1" lay-filter="test"></table>
+ 
+<script src="static/layui/layui.js"></script>
+<script>
+
+layui.use('table', function(){
+  var table = layui.table;
+  table.render({
+    elem: '#table1'
+    ,height: 500
+    ,url: 'http://192.168.2.122:5000/KT/Admin/Api?Action_String=query'
+    ,page: true
+    ,method:'post'
+    ,cols: [[ 
+       {field: 'ImpDate', title: '注册时间', width: 120, sort: true, fixed: 'left'}
+       ,{field: 'TB_ID', title: '淘宝ID',  width:120, sort: true}
+       ,{field: 'description', title: '备注', width:200}
+       ,{field: 'end_time', title: '到期时间', width: 120,sort: true}
+       ,{field: 'key', title: 'key', width: 120, sort: true}
+       ,{field: 'id', title: 'ID', width: 120, sort: true}
+       ,{field: 'start_time', title: '开通时间', width:150, sort: true} 
+    ]]
+  });
+});
+</script>
+
+
+      	
+  </div> 		
+  </div>
+  </div>
+  
+  
+
+    </div>
+    <script src="static/layui/layui.js"></script>
+     <script>
+         var server_url = document.location.origin
+     
+                          $("#getkey").click(function() {
+                               $.ajax({
+                                   url:server_url+'/login',//获取key
+                                     type:'POST',
+                                   data:null,
+                                     dataType:'json',
+                                     success:function(data){
+                                        //console.log(data);
+                                      document.getElementById('key').innerHTML=data.key;
+                                       },
+                                      error:function(){}
+                                    })
+                                  });
+                                  
+                        
+                                         
+                                      
+                               
+                                
+                                 $("#change").click(function() {
+                                 var st={ TB_ID:document.getElementById('UpdataTB_ID').value,
+                                 description:document.getElementById('Updataremake').value,
+                                 start_time:document.getElementById('Updata_Start_Timer').value,
+                                 end_time:document.getElementById('Updata_End_Timer').value,
+                                 key:getElementById('key2').innerHTML};
+                                 $.ajax({
+                                           url:server_url+'/KT/Admin/Api?Action_String=edit',//修改用户信息
+                                           type:'POST',
+                                           data: JSON.stringify(st),
+                                            dataType:'json',
+                                            success:function(){   
+                                            document.getElementById('UpdataTB_ID').value="";
+                                            document.getElementById('Updataremake').value="";
+                                            document.getElementById('Updata_Start_Timer').value="";
+                                            document.getElementById('Updata_End_Timer').value="";
+                                            document.getElementById('key2').innerHTML="key";
+                                            },
+                                            error:function(){}
+                                          })
+                                   });
+                                   
+                                   
+                                   $("#register").click(function() {
+                                   var st={ TB_ID:document.getElementById('TB_ID').value,
+                                   description:document.getElementById('remake').value,
+                                   start_time:document.getElementById('insert_Start_Timer').value,
+                                   end_time:document.getElementById('insert_End_Timer').value,
+                                   key:document.getElementById('key').innerHTML};
+                                 $.ajax({
+                                     url: server_url +'/KT/Admin/Api?Action_String=insert',//注册
+                                           type:'POST',
+                                          data:st,
+                                            dataType:'json',
+                                            success:function(){ 
+                                            document.getElementById('TB_ID').value="";
+                                            document.getElementById('remake').value="";
+                                            document.getElementById('insert_Start_Timer').value="";
+                                            document.getElementById('insert_End_Timer').value="";
+											layer.alert('注册成功，key是:'+st.key);
+                                            document.getElementById('key').innerHTML="key";
+                                            },
+                                            error:function(){}
+                                          })
+                                   });
+                                
+                              
+     
+     
+     
+     
+        $(function ($) {
+            $.datepicker.regional['zh-CN'] = {
+                clearText: '清除',
+                clearStatus: '清除已选日期',
+                closeText: '关闭',
+                closeStatus: '不改变当前选择',
+                prevText: '< 上月',
+                prevStatus: '显示上月',
+                prevBigText: '<<',
+                prevBigStatus: '显示上一年',
+                nextText: '下月>',
+                nextStatus: '显示下月',
+                nextBigText: '>>',
+                nextBigStatus: '显示下一年',
+                currentText: '今天',
+                currentStatus: '显示本月',
+                monthNames: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+                monthNamesShort: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+                monthStatus: '选择月份',
+                yearStatus: '选择年份',
+                weekHeader: '周',
+                weekStatus: '年内周次',
+                dayNames: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'],
+                dayNamesShort: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
+                dayNamesMin: ['日', '一', '二', '三', '四', '五', '六'],
+                dayStatus: '设置 DD 为一周起始',
+                dateStatus: '选择 m月 d日, DD',
+                dateFormat: 'yy-mm-dd',
+                firstDay: 1,
+                initStatus: '请选择日期',
+                isRTL: false
+            };
+            $.datepicker.setDefaults($.datepicker.regional['zh-CN']);
+            $(".pick_date").datepicker();
+            $(".datatable").DataTable({
+                "sDom": "<'dtTop'<'dtShowPer'l><'dtFilter'f>><'dtTables't><'dtBottom'<'dtInfo'i><'dtPagination'p>>",
+                //"bPaginate": true, //翻页功能
+                //"bLengthChange": false, //改变每页显示数据数量
+                //"bFilter": true, //过滤功能
+                //"bSort": true, //排序功能
+                //"bInfo": true,//页脚信息
+                //"bAutoWidth": true,//自动宽度
+                "oLanguage": {//语言设置
+                    "sLengthMenu": "每页显示 _MENU_ 条记录",
+                    "sZeroRecords": "抱歉， 没有找到",
+                    "sInfo": "从 _START_ 到 _END_ /共 _TOTAL_ 条数据",
+                    "sInfoEmpty": "没有数据",
+                    "sInfoFiltered": "(从 _MAX_ 条数据中检索)",
+                    "oPaginate": {
+                        "sFirst": "首页",
+                        "sPrevious": "前一页",
+                        "sNext": "后一页",
+                        "sLast": "尾页"
+                    },
+                    "sZeroRecords": '<div style="text-align:center;width:100%">不好意思没找到相关的数据</div>',
+                    "sProcessing": '<div style="text-align:center;width:100%"><img src="./Images/Icons/Load/load-4.gif" /></div>'
+                },
+                "sLoadingRecords": '<div style="text-align:center;width:100%"><img src="./Images/Icons/Load/load-4.gif" /></div>',
+                "sPaginationType": "full_numbers"//全数页
+            });
+            $(".datatable").delegate(".asp_btn", "click", function () {
+                $("#btn_hidden").val($(this).next(".btn_hidden").val());
+            });
+        });
+
+    </script>   
+
+ </body>
+</html>

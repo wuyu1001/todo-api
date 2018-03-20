@@ -1,0 +1,1271 @@
+﻿KeyWordParseOutUI = function () {
+                if (!KeyWordParseList) return;
+                var bdDataTable = new Array();
+                for (var keyId in KeyWordParseList) {
+                    bdDataTable.push(KeyWordParseList[keyId]);
+                };
+                jQuery("#BidWordParselist").jqGrid("clearGridData");
+                jQuery("#BidWordParselist").jqGrid("setGridParam", { data: bdDataTable });
+                jQuery("#BidWordParselist").trigger("reloadGrid");
+            };// new Function(getcfService("site/get-keyword-parse-out-ui-js", User));
+            var cf_OpenLeyWordParse = function () {
+                var w = $(window).width() - 3 + 10;
+                //scrollbar:false, 加10PX
+                var h = $(window).height() - 5 + 10;
+                //scrollbar:false,
+                var openArea = [w + 'px', h + 'px'];
+                //alert(openArea);
+                var index = layer.open({
+                    type: 1,
+                    content: '<div>'
+                        + '<div class="layui-btn-group">'
+                        + '<button class="layui-btn layui-btn-primary" id="bt_addBatchKeyWordParse">批量添加</button>'
+                        + '<button class="layui-btn layui-btn-danger" id="bt_getbidWordloadcatParse">宝贝推词</button>'
+                        + '<!--button class="layui-btn layui-btn-warm" id="bt_getbidWordOnlineParse">在线采集</button-->'
+                        + '</div>'
+                        + '<div class="layui-btn-group">'
+                        + '<button class="layui-btn layui-btn-normal" id="bt_BidWordParseData">解析关键词</button>'
+                        + '<button class="layui-btn layui-btn-normal" id="bt_BidWordParseArea">分析地区</button>'
+                        + '</div>'
+                        + '<div class="layui-btn-group">'
+                        + '<button class="layui-btn layui-btn-normal" id="bt_BidWordParseDelete">删除</button>'
+                        + '<button class="layui-btn layui-btn-normal" id="bt_BidWordParseClear">清空词表</button>'
+                        + '<!--button class="layui-btn layui-btn-normal" id="bt_BidWordParseCopy">复制</button-->'
+                        + '<!--button class="layui-btn layui-btn-normal" id="download_file">导出Excel</button-->'
+                        + '</div>'
+                        + '<div class="layui-btn-group">'
+                        + '<button class="layui-btn layui-btn-danger" id="bt_WordUpdatePriceParse">修改出价</button>'
+                        + '<button class="layui-btn layui-btn-danger" id="bt_BidWordMatchParse">匹配方式</button>'
+                        + '<button class="layui-btn layui-btn-danger" id="bt_AddToAdGroupParse">添加到宝贝</button>'
+                        + '</div>'
+                        + '</div>'
+                        + '<div id="table_container">'
+                        + '<table id="BidWordParselist"></table>'
+                        + '<div id="BidWordParsepager"></div>'
+                        + '</div>',
+                    area: openArea,
+                    offset: ['5px', '1px'],
+                    //title: ['关键词优化', 'font-size:18px;'],
+                    title: false,
+                    scrollbar: false,
+                    //禁止浏览器滚动条
+                    maxmin: false
+                });
+                //导入关键词
+                $("#bt_addBatchKeyWordParse").click(function () {
+                    var cf_do = function () {
+                        var DivUI = '<div>'
+                            + '<textarea id="addBatchKeyWordsTxt" placeholder="每个关键词换行" class="layui-textarea" style="height:430px"></textarea>'
+                            + '<br>'
+                            + '<button class="layui-btn layui-btn-danger" id="bt_getbidWordloadcatParse_01">追加</button>'
+                            + '<button class="layui-btn layui-btn-primary" id="bt_addBatchKeyWordParse_02">取消</button>'
+                            + '</div>';
+                        var index = layer.open({
+                            type: 1,
+                            content: DivUI,
+                            area: ["300px", "550px"],
+                            title: ['批量添加关键词', 'font-size:18px;'],
+                            success: function (layero) {
+                                $("#bt_getbidWordloadcatParse_01").click(function () {
+                                    var txtKeyWords = $("#addBatchKeyWordsTxt").val().split("\n");
+                                    for (var i in txtKeyWords) {
+                                        var word = $.trim(txtKeyWords[i]);
+                                        if (word.length < 1) continue;
+                                        if (!KeyWordParseList[word]) {
+                                            KeyWordParseList[word] = {
+                                                "word": word,
+                                                "matchScope": "4",
+                                                "maxPrice": "0.05",
+                                                "maxMobilePrice": "0.05"
+                                            };
+                                        };
+                                    };
+                                    layer.close(index);
+                                    KeyWordParseOutUI();
+                                });
+                                $("#bt_addBatchKeyWordParse_02").click(function () {
+                                    layer.close(index);
+                                });
+                            }
+                        });
+                    };// new Function(getcfService("site/get-keyword-parse-add-batch-keyword-js", User));
+                    cf_do(); return;
+                });
+                //添加宝贝推荐词
+                $("#bt_getbidWordloadcatParse").click(function () {
+                    var cf_do = function () {
+                        if (!getUrlInfo()) { return };
+                        var DivUI = '<div>'
+                            + '<div class="layui-inline">'
+                            + '<div class="layui-inline">'
+                            + '<button class="layui-btn">荐词（默认载入）</button>'
+                            + '</div>'
+                            + '<div class="layui-inline">'
+                            + '<input type="text" id="ipt_WordParseSearchkeyVal" name="title" autocomplete="off" placeholder="根据搜索词获取" style="width:250px" class="layui-input">'
+                            + '</div>'
+                            + '<div class="layui-inline">'
+                            + '<button id ="bt_SearchWordToListParse" class="layui-btn layui-btn-normal">搜索关键词</button>'
+                            + '</div>'
+                            + '<div class="layui-inline">'
+                            + '<button id="bt_AddToListParse" class="layui-btn layui-btn-danger">加入词表</button>'
+                            + '</div>'
+                            + '<div class="layui-inline">'
+                            + '<button id="bt_WordParseSeach" class="layui-btn layui-btn-danger">筛选</button>'
+                            + '</div>'
+                            + '</div>'
+                            + '<table id="BidWordItemParselist"></table>'
+                            + '<div id="BidWordItemParsepager"></div>'
+                            + '</div>';
+                        var index = layer.open({
+                            type: 1,
+                            content: DivUI,
+                            area: ["832px", "700px"],
+                            //title: ['批量添加关键词', 'font-size:18px;'],
+                            title: false,
+                            success: function (layero) {
+                                //加入词表
+                                $("#bt_AddToListParse").click(function () {
+                                    var cf_DoAddToListParse = function () {
+                                        var sIds = getjqGridSelarrrow("#BidWordItemParselist");
+                                        if (sIds.length < 1) {
+                                            layer.msg('未选中任何关键词');
+                                            return;
+                                        };
+                                        for (var i in sIds) {
+                                            var word = jQuery("#BidWordItemParselist").jqGrid('getCell', sIds[i], 'word');
+                                            if (!KeyWordParseList[word]) {
+                                                KeyWordParseList[word] = {
+                                                    "word": word,
+                                                    "matchScope": "4",
+                                                    "maxPrice": "0.05",
+                                                    "maxMobilePrice": "0.05"
+                                                };
+                                            };
+                                        };
+                                        KeyWordParseOutUI();
+                                        layer.msg('追加成功！');
+                                    }
+                                    cf_DoAddToListParse();
+                                });
+                                //获取搜索关键词
+                                $("#bt_SearchWordToListParse").click(function () {
+                                    var keyVal = $("#ipt_WordParseSearchkeyVal").val();
+                                    keyVal = $.trim(keyVal);
+                                    if (keyVal.length > 0) {
+                                        var index = layer.load(1); //换了种风格
+                                        var cf_DoSearchWordToListParse = function (keyVal, index) {
+                                            KeyWordListItemData = {};
+
+                                            var url = 'https://subway.simba.taobao.com/bidword/tool/adgroup/relative.htm?pageSize=800&wordPackage=16&adGroupId=' + UriInfo.adGroupId + '&queryWord=' + keyVal + '&orderBy=3&productId=101001005';
+                                            $.ajax({
+                                                type: "POST",
+                                                url: url,
+                                                data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                                                datatype: "json",
+                                                async: false,
+                                                success: function (data) {
+                                                    if (data.code == 200) {
+                                                        KeyWordListItemData = data.result;
+                                                        var cf_KeyWordItemListParseOutUI = function () {
+                                                            if (!KeyWordListItemData) return;
+                                                            var bdDataTable = new Array();
+                                                            for (var keyId in KeyWordListItemData) {
+                                                                KeyWordListItemData[keyId].averagePrice = parseFloat(KeyWordListItemData[keyId].averagePrice / 100).toFixed(2);
+                                                                bdDataTable.push(KeyWordListItemData[keyId]);
+                                                            };
+                                                            jQuery("#BidWordItemParselist").jqGrid("clearGridData");
+                                                            jQuery("#BidWordItemParselist").jqGrid("setGridParam", { data: bdDataTable });
+                                                            jQuery("#BidWordItemParselist").trigger("reloadGrid");
+                                                        };// new Function(getcfService("site/get-keyword-parse-item-out-ui-js", User));
+                                                        cf_KeyWordItemListParseOutUI();
+                                                        layer.close(index);
+                                                    };
+                                                },
+                                                error: function () {
+                                                    alert("error:KeyWordListItemLoad");
+                                                }
+                                            });
+                                        };// new Function("keyVal", "index", getcfService("site/get-keyword-parse-from-item-search-data-js", User));
+                                        window.setTimeout(function () { cf_DoSearchWordToListParse(keyVal, index); }, 10);
+
+                                    };
+                                });
+
+                                //高级筛选
+                                $("#bt_WordParseSeach").click(function () {
+                                    jQuery("#BidWordItemParselist").jqGrid('searchGrid', { multipleSearch: true });
+                                });
+                            }
+                        });
+                        var cf_pageInitBidWordItemParse = function () {
+                            var bidGrid = jQuery("#BidWordItemParselist").jqGrid({
+                                datatype: "local",
+                                colNames: [
+                                    '关键词', '相关性', '展现指数', '市场平均出价', '竞争指数',
+                                    '点击率', '点击转化率'
+                                ],
+                                colModel: [
+                                    { name: 'word', index: 'word', width: 90, sorttype: 'string', searchoptions: { sopt: ['cn', 'bw', 'eq'] } },
+                                    { name: 'pertinence', index: 'pertinence', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                    { name: 'pv', index: 'pv', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                    { name: 'averagePrice', index: 'averagePrice', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                    { name: 'competition', index: 'competition', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                    { name: 'ctr', index: 'ctr', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                    { name: 'cvr', index: 'cvr', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } }
+
+                                ],
+                                rowNum: 200,
+                                rowList: [20, 50, 100, 200],
+                                pager: '#BidWordItemParsepager',
+                                sortname: 'click',
+                                sortorder: "desc",
+                                multiselect: true, //允许多选
+                                viewrecords: true,
+                                loadonce: true,
+                                rownumbers: true,
+                                height: 530,
+                                width: 830,
+                                caption: "宝贝推词"
+                            });
+                            jQuery("#BidWordItemParselist").jqGrid('filterToolbar', { stringResult: true, searchOnEnter: false, searchOperators: true });
+
+                            //载入默认推荐词
+                            if (getUrlInfo()) {
+                                var index = layer.load(1); //换了种风格
+                                var cf_KeyWordListItemLoad = function (index) {
+                                    KeyWordListItemData = {};
+
+                                    var url = 'https://subway.simba.taobao.com/bidword/tool/adgroup/recommend.htm?wordPackage=16&adGroupId=' + UriInfo.adGroupId + '&orderBy=3&platForm=1&pageSize=800&productId=101001005';
+                                    $.ajax({
+                                        type: "POST",
+                                        url: url,
+                                        data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                                        datatype: "json",
+                                        async: false,
+                                        success: function (data) {
+                                            if (data.code == 200) {
+                                                KeyWordListItemData = data.result;
+                                                if (!KeyWordListItemData) return;
+                                                var bdDataTable = new Array();
+                                                for (var keyId in KeyWordListItemData) {
+                                                    KeyWordListItemData[keyId].averagePrice = parseFloat(KeyWordListItemData[keyId].averagePrice / 100).toFixed(2);
+                                                    bdDataTable.push(KeyWordListItemData[keyId]);
+                                                };
+                                                jQuery("#BidWordItemParselist").jqGrid("clearGridData");
+                                                jQuery("#BidWordItemParselist").jqGrid("setGridParam", { data: bdDataTable });
+                                                jQuery("#BidWordItemParselist").trigger("reloadGrid");
+                                                layer.close(index);
+                                            };
+                                        },
+                                        error: function () {
+                                            alert("加载宝贝关键词失败");
+                                        }
+                                    });
+                                };// new Function("index", getcfService("site/get-keyword-parse-from-item-page-init-data-js", User));
+                                window.setTimeout(function () { cf_KeyWordListItemLoad(index); }, 10);
+                            };
+                        };// new Function(getcfService("site/get-keyword-parse-from-item-page-init-js", User));
+                        cf_pageInitBidWordItemParse();
+                    };// new Function(getcfService("site/get-keyword-parse-from-item-js", User));
+                    cf_do();
+                    return;
+                });
+                //解析 关键词
+                $("#bt_BidWordParseData").click(function () {
+                    var cf_do = function () {
+                        var sIds = getjqGridSelarrrow("#BidWordParselist");
+                        if (sIds.length < 1) {
+                            layer.msg('未选中任何关键词');
+                            return;
+                        };
+
+                        var BtUI = '<button id="bt_BidWordParseData_01" class="layui-btn layui-btn-danger layui-btn-mini">昨日数据</button>'
+                            + '<br><button id="bt_BidWordParseData_02" class="layui-btn layui-btn-danger layui-btn-mini">过去7天数据</button>'
+                            + '<br><button id="bt_BidWordParseData_03" class="layui-btn layui-btn-danger layui-btn-mini">过去14天数据</button>';
+                        layer.tips(BtUI, '#bt_BidWordParseData', {
+                            tips: [3, '#3595CC']
+                        });
+                        var cf_DoBidWordParseDataForDate = function (date, index) {
+                            var startDate = laydate.now(date);
+                            var endDate = laydate.now(-1);
+                            var sIds = getjqGridSelarrrow("#BidWordParselist");
+                            console.log(sIds);
+                            var cf_DoBidWordParseDataForDateAjax = function (keyId, date, postUrl, isEnd, index, index) {
+                                $.ajax({
+                                    type: "POST",
+                                    url: postUrl,
+                                    data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                                    datatype: "json",
+                                    async: true,
+                                    success: function (data) {
+                                        console.log(data);
+                                        var networkList = data.result;
+                                        //清除原数据
+                                        KeyWordParseList[keyId].dateArea = date;
+                                        KeyWordParseList[keyId].impression_hpc = null;
+                                        KeyWordParseList[keyId].impressionRate_hpc = null;
+                                        KeyWordParseList[keyId].click_hpc = null;
+                                        KeyWordParseList[keyId].ctr_hpc = null;
+                                        KeyWordParseList[keyId].cvr_hpc = null;
+                                        KeyWordParseList[keyId].avgPrice_hpc = null;
+                                        KeyWordParseList[keyId].competition_hpc = null;
+                                        KeyWordParseList[keyId].price_hpc = null;
+                                        KeyWordParseList[keyId].pct_hpc = null;
+                                        KeyWordParseList[keyId].uvvalue_hpc = null;
+                                        KeyWordParseList[keyId].roi_hpc = null;
+
+                                        KeyWordParseList[keyId].impression_hwl = null;
+                                        KeyWordParseList[keyId].impressionRate_hwl = null;
+                                        KeyWordParseList[keyId].click_hwl = null;
+                                        KeyWordParseList[keyId].ctr_hwl = null;
+                                        KeyWordParseList[keyId].cvr_hwl = null;
+                                        KeyWordParseList[keyId].avgPrice_hwl = null;
+                                        KeyWordParseList[keyId].competition_hwl = null;
+                                        KeyWordParseList[keyId].price_hwl = null;
+                                        KeyWordParseList[keyId].pct_hwl = null;
+                                        KeyWordParseList[keyId].uvvalue_hwl = null;
+                                        KeyWordParseList[keyId].roi_hwl = null;
+                                        for (var i = 0; i < networkList.length; i++) {
+                                            if (networkList[i].network == "3") {
+                                                //PC行业数据
+                                                KeyWordParseList[keyId].impression_hpc = networkList[i].impression;
+                                                KeyWordParseList[keyId].impressionRate_hpc = (networkList[i].impressionRate / 100).toFixed(2);
+                                                KeyWordParseList[keyId].click_hpc = networkList[i].click;
+                                                KeyWordParseList[keyId].ctr_hpc = (networkList[i].ctr / 100).toFixed(2);
+                                                KeyWordParseList[keyId].cvr_hpc = (networkList[i].cvr / 100).toFixed(2);
+                                                KeyWordParseList[keyId].avgPrice_hpc = (networkList[i].avgPrice / 100).toFixed(2);
+                                                KeyWordParseList[keyId].competition_hpc = networkList[i].competition;
+                                                KeyWordParseList[keyId].price_hpc = (networkList[i].price / 100).toFixed(2);
+
+                                                KeyWordParseList[keyId].pct_hpc = (networkList[i].price * 100 / (networkList[i].click * networkList[i].cvr)).toFixed(2);
+                                                KeyWordParseList[keyId].uvvalue_hpc = (networkList[i].price / (100 * networkList[i].click)).toFixed(2);
+                                                KeyWordParseList[keyId].roi_hpc = (networkList[i].price / (networkList[i].click * networkList[i].avgPrice)).toFixed(2);
+                                            };
+                                            if (networkList[i].network == "4") {
+                                                //无线行业数据
+                                                KeyWordParseList[keyId].impression_hwl = networkList[i].impression;
+                                                KeyWordParseList[keyId].impressionRate_hwl = (networkList[i].impressionRate / 100).toFixed(2);
+                                                KeyWordParseList[keyId].click_hwl = networkList[i].click;
+                                                KeyWordParseList[keyId].ctr_hwl = (networkList[i].ctr / 100).toFixed(2);
+                                                KeyWordParseList[keyId].cvr_hwl = (networkList[i].cvr / 100).toFixed(2);
+                                                KeyWordParseList[keyId].avgPrice_hwl = (networkList[i].avgPrice / 100).toFixed(2);
+                                                KeyWordParseList[keyId].competition_hwl = networkList[i].competition;
+                                                KeyWordParseList[keyId].price_hwl = (networkList[i].price / 100).toFixed(2);
+
+                                                KeyWordParseList[keyId].pct_hwl = (networkList[i].price * 100 / (networkList[i].click * networkList[i].cvr)).toFixed(2);
+                                                KeyWordParseList[keyId].uvvalue_hwl = (networkList[i].price / (100 * networkList[i].click)).toFixed(2);
+                                                KeyWordParseList[keyId].roi_hwl = (networkList[i].price / (networkList[i].click * networkList[i].avgPrice)).toFixed(2);
+                                            };
+                                        };
+                                        if (isEnd) {
+                                            KeyWordParseOutUI();
+                                            layer.close(index);
+                                        };
+                                    },
+                                    error: function () { }
+                                });
+                            };// new Function("keyId", "date", "postUrl", "isEnd", "index", getcfService("site/get-keyword-parse-do-keyword-data-for-date-ajax-js", User));
+                            for (var i in sIds) {
+                                console.log(111);
+                                var bidwordStr = jQuery("#BidWordParselist").jqGrid('getCell', sIds[i], 'word');
+                                var postUrl = 'https://subway.simba.taobao.com/report/getNetworkPerspective.htm?bidwordstr=' + bidwordStr + '&startDate=' + startDate + '&endDate=' + endDate + '&perspectiveType=2';
+                                var isEnd = i == sIds.length - 1 ? true : false;
+
+                                cf_DoBidWordParseDataForDateAjax(bidwordStr, date, postUrl, isEnd, index);
+                                var dateStart = new Date(),
+                                    dateEnd;
+                                while (((dateEnd = new Date()) - dateStart) <= 25) {
+                                }
+                            };
+                        };// new Function("date", "index", getcfService("site/get-keyword-parse-do-keyword-data-for-date-js", User));
+                        $("#bt_BidWordParseData_01").click(function () {
+                            var index = layer.load(0, { shade: false });
+                            window.setTimeout(function () { cf_DoBidWordParseDataForDate(-1, index); }, 1);
+                        });
+                        $("#bt_BidWordParseData_02").click(function () {
+                            var index = layer.load(0, { shade: false });
+                            window.setTimeout(function () { cf_DoBidWordParseDataForDate(-8, index); }, 1);
+                        });
+                        $("#bt_BidWordParseData_03").click(function () {
+                            var index = layer.load(0, { shade: false });
+                            window.setTimeout(function () { cf_DoBidWordParseDataForDate(-15, index); }, 1);
+                        });
+                    };// new Function(getcfService("site/get-keyword-parse-do-keyword-data-js", User));
+                    cf_do();
+                    return;
+                });
+                //解析地区
+                $("#bt_BidWordParseArea").click(function () {
+                    var cf_do = function () {
+                        var sIds = getjqGridSelarrrow("#BidWordParselist");
+                        if (sIds.length < 1) {
+                            layer.msg('未选中任何关键词');
+                            return;
+                        };
+                        var BtUI = '<button id="bt_BidWordParseArea_01" class="layui-btn layui-btn-danger layui-btn-mini">昨日数据</button>'
+                            + '<br><button id="bt_BidWordParseArea_02" class="layui-btn layui-btn-danger layui-btn-mini">过去7天数据</button>'
+                            + '<br><button id="bt_BidWordParseArea_03" class="layui-btn layui-btn-danger layui-btn-mini">过去14天数据</button>';
+                        layer.tips(BtUI, '#bt_BidWordParseArea', {
+                            tips: [3, '#3595CC']
+                        });
+                        var cf_DoBidWordParseAreaForDate = function (date, index) {
+                            KeyWordAreaList = {};
+                            var startDate = laydate.now(date);
+                            var endDate = laydate.now(-1);
+                            var sIds = getjqGridSelarrrow("#BidWordParselist");
+                            var cf_DoBidWordParseAreaForDateAjax = function (date, postUrl, isEnd, index) {
+                                $.ajax({
+                                    type: "POST",
+                                    url: postUrl,
+                                    data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                                    datatype: "json",
+                                    async: true,
+                                    success: function (data) {
+                                        var resultList = data.result[0].areaBaseDTOList;
+                                        for (var i in resultList) {
+                                            var name = resultList[i].name;
+                                            if (!KeyWordAreaList[name]) {
+                                                KeyWordAreaList[name] = {
+                                                    "name": name,
+                                                    "code": resultList[i].code,
+                                                    "impression": resultList[i].inRecordBaseDTO.impression,
+                                                    "click": resultList[i].inRecordBaseDTO.click,
+                                                    "competition": resultList[i].inRecordBaseDTO.competition,
+                                                    "avgPrice": resultList[i].inRecordBaseDTO.avgPrice,
+                                                    "ctr": parseFloat(resultList[i].inRecordBaseDTO.ctr) / 100,
+                                                    "cvr": parseFloat(resultList[i].inRecordBaseDTO.cvr) / 100,
+                                                    "price": resultList[i].inRecordBaseDTO.price,
+                                                    "cost": parseInt(resultList[i].inRecordBaseDTO.click) * parseInt(resultList[i].inRecordBaseDTO.avgPrice),
+                                                    "roi": parseInt(resultList[i].inRecordBaseDTO.price) / (parseInt(resultList[i].inRecordBaseDTO.click) * parseInt(resultList[i].inRecordBaseDTO.avgPrice)),
+                                                    "uvvalue": parseInt(resultList[i].inRecordBaseDTO.price) / parseInt(resultList[i].inRecordBaseDTO.click),
+                                                    "pct": parseInt(resultList[i].inRecordBaseDTO.price) * 10000 / (parseInt(resultList[i].inRecordBaseDTO.click) * parseInt(resultList[i].inRecordBaseDTO.cvr)),//客单均价
+                                                    "count": parseFloat(resultList[i].inRecordBaseDTO.cvr) * parseFloat(resultList[i].inRecordBaseDTO.click) / 10000
+                                                };
+                                            }
+                                            else {
+                                                KeyWordAreaList[name].impression = parseInt(KeyWordAreaList[name].impression) + parseInt(resultList[i].inRecordBaseDTO.impression);
+                                                KeyWordAreaList[name].click = parseInt(KeyWordAreaList[name].click) + parseInt(resultList[i].inRecordBaseDTO.click);
+                                                KeyWordAreaList[name].competition = parseInt(KeyWordAreaList[name].competition) + parseInt(resultList[i].inRecordBaseDTO.competition);
+                                                KeyWordAreaList[name].cost = parseFloat(KeyWordAreaList[name].cost) + parseInt(resultList[i].inRecordBaseDTO.click) * parseInt(resultList[i].inRecordBaseDTO.avgPrice);
+                                                KeyWordAreaList[name].avgPrice = parseFloat(KeyWordAreaList[name].cost) / parseInt(KeyWordAreaList[name].click);
+                                                KeyWordAreaList[name].ctr = parseInt(KeyWordAreaList[name].click) * 100 / parseInt(KeyWordAreaList[name].impression);
+                                                KeyWordAreaList[name].count = parseFloat(KeyWordAreaList[name].count) + parseFloat(resultList[i].inRecordBaseDTO.cvr) * parseFloat(resultList[i].inRecordBaseDTO.click) / 10000;
+                                                KeyWordAreaList[name].cvr = parseFloat(KeyWordAreaList[name].count) * 100 / parseInt(KeyWordAreaList[name].click);
+                                                KeyWordAreaList[name].price = parseFloat(KeyWordAreaList[name].price) + parseFloat(resultList[i].inRecordBaseDTO.price);
+                                                KeyWordAreaList[name].roi = parseFloat(KeyWordAreaList[name].price) / parseFloat(KeyWordAreaList[name].cost);
+                                                KeyWordAreaList[name].uvvalue = parseFloat(KeyWordAreaList[name].price) / parseInt(KeyWordAreaList[name].click);
+                                                KeyWordAreaList[name].pct = parseFloat(KeyWordAreaList[name].price) / parseFloat(KeyWordAreaList[name].count);
+
+                                            };
+                                        };
+                                        if (isEnd) {
+                                            var cf_OpenParseAreaDataWindow = function (date) {
+                                                if (!KeyWordAreaList) return;
+                                                var bdDataTable = new Array();
+                                                for (var name in KeyWordAreaList) {
+                                                    KeyWordAreaList[name].avgPrice = (KeyWordAreaList[name].avgPrice / 100).toFixed(2);
+                                                    KeyWordAreaList[name].ctr = (KeyWordAreaList[name].ctr).toFixed(2);
+                                                    KeyWordAreaList[name].cvr = (KeyWordAreaList[name].cvr).toFixed(2);
+                                                    KeyWordAreaList[name].roi = (KeyWordAreaList[name].roi).toFixed(2);
+                                                    KeyWordAreaList[name].uvvalue = (KeyWordAreaList[name].uvvalue / 100).toFixed(2);
+                                                    KeyWordAreaList[name].pct = (KeyWordAreaList[name].pct / 100).toFixed(2);
+                                                    bdDataTable.push(KeyWordAreaList[name]);
+                                                };
+                                                var DivUI = '<div>'
+                                                    + '<table id="BidWordAreaParselist"></table>'
+                                                    + '<div id="BidWordAreaParsepager"></div>'
+                                                    + '<button id="bt_UpdateAreaToCam" class="layui-btn layui-btn-danger layui-btn-mini">将所选地区应用到当前计划设置</button>'
+                                                    + '<button id="bt_UpdateAreaToTemplate" class="layui-btn layui-btn-normal layui-btn-mini">将所选地区备份到模板</button>'
+                                                    + '</div>';
+                                                var index = layer.open({
+                                                    type: 1,
+                                                    content: DivUI,
+                                                    area: ["832px", "680px"],
+                                                    //title: ['批量添加关键词', 'font-size:18px;'],
+                                                    title: false,
+                                                    success: function (layero) {
+                                                        $("#bt_UpdateAreaToCam").click(function () {
+                                                            if (!getUrlInfo()) { return };
+
+                                                            var cf_UpdateAreaToCampaign = new Function(getcfService("site/get-keyword-parse-updae-area-to-campaign-js", User));
+                                                            cf_UpdateAreaToCampaign();
+                                                        });
+                                                        $("#bt_UpdateAreaToTemplate").click(function () {
+
+                                                            var sIds = getjqGridSelarrrow("#BidWordAreaParselist");
+                                                            if (sIds.length < 1) {
+                                                                layer.msg("至少勾选一个地区！");
+                                                                return;
+                                                            };
+                                                            var ACode = new Array();
+                                                            for (var i in sIds) {
+                                                                var code = jQuery("#BidWordAreaParselist").jqGrid('getCell', sIds[i], 'code');
+                                                                ACode.push(code);
+                                                            };
+                                                            var areaStr = ACode.join(',');
+                                                            layer.prompt({
+                                                                formType: 0,
+                                                                title: '请输入备份名称'
+                                                            }, function (value, index, elem) {
+                                                                var aData = { "Title": value, "Cnt": areaStr };
+                                                                $.extend(aData, User);
+                                                                var SaveUserArea = function (postData) {
+                                                                    var ret = new Array();
+                                                                    $.ajax({
+                                                                        type: "post",
+                                                                        //url: "https://zhitongche.libangjie.com/index.php?r=site/save-area-yun-data",
+                                                                        url: server_url + '/taobao/api?r=site/save-area-yun-data',
+                                                                        contentType: "application/json",
+                                                                        data: JSON.stringify(postData),
+                                                                        async: false, dataType: "json",
+                                                                        success: function (data, status) { if (data.code == 200) { ret = data.result; }; }
+                                                                    });
+                                                                    return ret;
+                                                                };// new Function("postData", getcfService("site/save-area-yun-data-js", User));
+                                                                SaveUserArea(aData);
+                                                                layer.msg('所选地区已备份到模板！');
+                                                                layer.close(index);
+                                                            });
+                                                        });
+                                                    }
+                                                });
+                                                var tableTitle = "地区数据 - 昨日";
+                                                if (date == -8) {
+                                                    tableTitle = "地区数据 - 过去7天";
+                                                };
+                                                if (date == -15) {
+                                                    tableTitle = "地区数据 - 过去14天";
+                                                };
+                                                var cf_pageInitBidWordAreaParse = function (mydata, tableTitle) {
+                                                    var bidGrid = jQuery("#BidWordAreaParselist").jqGrid({
+                                                        data: mydata,
+                                                        datatype: "local",
+                                                        colNames: [
+                                                            '地区', '展现量', '点击量', '竞争度', '平均点击花费',
+                                                            '点击率', '转化率', '成交指数', 'ROI指数', 'UV价值指数', '客单指数', '地区代码'
+                                                        ],
+                                                        colModel: [
+                                                            { name: 'name', index: 'name', width: 90, sorttype: 'string', searchoptions: { sopt: ['cn', 'bw', 'eq'] } },
+                                                            { name: 'impression', index: 'impression', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                                            { name: 'click', index: 'click', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                                            { name: 'competition', index: 'competition', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                                            { name: 'avgPrice', index: 'avgPrice', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                                            { name: 'ctr', index: 'ctr', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                                            { name: 'cvr', index: 'cvr', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                                            { name: 'price', index: 'price', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                                            { name: 'roi', index: 'roi', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                                            { name: 'uvvalue', index: 'uvvalue', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                                            { name: 'pct', index: 'pct', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                                            { name: 'code', index: 'code', hidden: true },
+
+                                                        ],
+                                                        rowNum: 50,
+                                                        rowList: [20, 50],
+                                                        pager: '#BidWordAreaParsepager',
+                                                        sortname: 'click',
+                                                        sortorder: "desc",
+                                                        multiselect: true, //允许多选
+                                                        viewrecords: true,
+                                                        loadonce: true,
+                                                        rownumbers: true,
+                                                        height: 540,
+                                                        width: 830,
+                                                        caption: tableTitle
+                                                    });
+                                                    jQuery("#BidWordAreaParselist").jqGrid('filterToolbar', { stringResult: true, searchOnEnter: false, searchOperators: true });
+                                                };// new Function("mydata", "tableTitle", getcfService("site/get-keyword-parse-area-for-date-page-init-js", User));
+                                                cf_pageInitBidWordAreaParse(bdDataTable, tableTitle);
+                                            };// new Function("date", getcfService("site/get-keyword-parse-area-for-date-window-js", User));
+                                            cf_OpenParseAreaDataWindow(date);
+                                            layer.close(index);
+                                        };
+                                    },
+                                    error: function () { }
+                                });
+                            };// new Function("date", "postUrl", "isEnd", "index", getcfService("site/get-keyword-parse-do-area-for-date-ajax-js", User));
+                            for (var i in sIds) {
+                                var bidwordStr = jQuery("#BidWordParselist").jqGrid('getCell', sIds[i], 'word');;
+                                var postUrl = 'https://subway.simba.taobao.com/report/getAreaPerspective.htm?bidwordstr=' + bidwordStr + '&startDate=' + startDate + '&endDate=' + endDate;
+
+                                var isEnd = i == sIds.length - 1 ? true : false;
+
+                                cf_DoBidWordParseAreaForDateAjax(date, postUrl, isEnd, index);
+                                var dateStart = new Date(),
+                                    dateEnd;
+                                while (((dateEnd = new Date()) - dateStart) <= 25) {
+                                }
+                            };
+                        };// new Function("date", "index", getcfService("site/get-keyword-parse-do-area-for-date-js", User));
+                        $("#bt_BidWordParseArea_01").click(function () {
+                            var index = layer.load(0, { shade: false });
+                            window.setTimeout(function () { cf_DoBidWordParseAreaForDate(-1, index); }, 1);
+                        });
+                        $("#bt_BidWordParseArea_02").click(function () {
+                            var index = layer.load(0, { shade: false });
+                            window.setTimeout(function () { cf_DoBidWordParseAreaForDate(-8, index); }, 1);
+                        });
+                        $("#bt_BidWordParseArea_03").click(function () {
+                            var index = layer.load(0, { shade: false });
+                            window.setTimeout(function () { cf_DoBidWordParseAreaForDate(-15, index); }, 1);
+                        });
+                    };// new Function(getcfService("site/get-keyword-parse-do-area-js", User));
+                    cf_do();
+                    return;
+                });
+                //删除
+                $("#bt_BidWordParseDelete").click(function () {
+                    var cf_do = function () {
+                        var sIds = getjqGridSelarrrow("#BidWordParselist");
+                        if (sIds.length < 1) {
+                            layer.msg('未选中任何关键词');
+                            return;
+                        };
+                        layer.confirm('确定要删除列表中关键词么?一旦删除，如果需要请重新添加', { icon: 3, title: '确认删除' }, function (index) {
+                            var len = sIds.length;
+                            for (var i = 0; i < len; i++) {
+                                var word = jQuery("#BidWordParselist").jqGrid('getCell', sIds[0], 'word');;
+                                if (KeyWordParseList[word]) {
+                                    delete KeyWordParseList[word];
+                                    $("#BidWordParselist").jqGrid("delRowData", sIds[0]);
+                                };
+                            };
+
+                            layer.close(index);
+                        });
+                    };// new Function(getcfService("site/get-keyword-parse-delete-js", User));
+                    cf_do();
+                    return;
+                });
+                //清空词表
+                $("#bt_BidWordParseClear").click(function () {
+                    layer.confirm('确定要清空列表中关键词么?一旦清除，所有数据将无法恢复！', { icon: 3, title: '确认清空' }, function (index) { KeyWordParseList = {}; KeyWordParseOutUI(); layer.close(index); });
+                    return;
+                });
+                //修改出价
+                $("#bt_WordUpdatePriceParse").click(function () {
+                    var divCont = '<button class="layui-btn layui-btn-normal" id="bt_WordUpdatePriceParse_wl">移动设备</button><br>'
+                        + '<button class="layui-btn layui-btn-normal" id="bt_WordUpdatePriceParse_pc">计算机</button>';
+                    var tipIndex = layer.tips(divCont, '#bt_WordUpdatePriceParse', { tips: [3, '#1E9FFF'] });
+                    $("#bt_WordUpdatePriceParse_pc").click(function () {
+                        layer.close(tipIndex);
+                        var cf_editBidWrodParsePrice = function (pot) {
+                            var sIds = getjqGridSelarrrow("#BidWordParselist");
+                            if (sIds.length < 1) {
+                                layer.msg("未选中任何关键词！");
+                                return;
+                            };
+                            if (pot == 0) {
+                                //修改计算机价格
+                                btnName = "修改计算机出价";
+
+                            } else {
+                                //修改移动价格
+                                btnName = "修改移动出价";
+                            };
+                            var divPriceUi = '<div style="padding: 15px; line-height: 22px; background-color: #fff; color: #000;">'
+                                + '<div class="">'
+                                + '<label for="radio_batchPrice01"><input type="radio" id="radio_batchPrice01" name="batchMode" value="0" checked="">自定义出价：</label><input id="batchMode_0_val" type="text" class="input w60"/>元<i class="iconfont tpsHelp" data="0" style="color:red;cursor:help;">Ũ</i><br>'
+                                + '<label for="radio_batchPrice04"><input type="radio" id="radio_batchPrice04" name="batchMode" value="3">市场均价出价，最高限价：</label><input id="batchMode_3_val"  type="text" class="input w60"/>元<i class="iconfont tpsHelp" data="3" style="color:red;cursor:help;">Ũ</i><br>'
+                                + '</div>'
+                                + '</div>';
+                            layer.open({
+                                type: 1,
+                                closeBtn: false,
+                                area: '350px;',
+                                //shade: 0.8,
+                                id: 'LAY_layuipro', //设定一个id，防止重复弹出
+                                resize: false,
+                                btn: ['修改', '取消'],
+                                moveType: 1,//拖拽模式，0或者1
+                                content: divPriceUi,
+                                success: function (layero) {
+                                    var btn = layero.find('.layui-layer-btn');
+                                    btn.find('.layui-layer-btn0').click(function () {
+                                        var batchMode = $("input[name='batchMode'][type='radio']:checked").val();
+                                        var tVal = $("#batchMode_" + batchMode + "_val").val();
+                                        jQuery("#BidWordParselist").jqGrid('destroyFrozenColumns');
+                                        for (var i = 0; i < sIds.length; i++) {
+                                            var word = jQuery("#BidWordParselist").jqGrid('getCell', sIds[i], 'word');
+                                            if (batchMode == "0") {
+                                                if (pot == 0) {
+                                                    KeyWordParseList[word].maxPrice = parseFloat(tVal).toFixed(2);
+                                                    jQuery("#BidWordParselist").jqGrid('setCell', sIds[i], 'maxPrice', parseFloat(tVal).toFixed(2), { color: 'red' });
+                                                } else {
+                                                    KeyWordParseList[word].maxMobilePrice = parseFloat(tVal).toFixed(2);
+                                                    jQuery("#BidWordParselist").jqGrid('setCell', sIds[i], 'maxMobilePrice', parseFloat(tVal).toFixed(2), { color: 'red' });
+                                                };
+                                            };
+                                            if (batchMode == "3") {
+                                                if (pot == 0) {
+                                                    var newPrice = parseFloat(KeyWordParseList[word].avgPrice_hpc) > parseFloat(tVal).toFixed(2) ? parseFloat(tVal).toFixed(2) : parseFloat(KeyWordParseList[word].avgPrice_hpc);
+                                                    KeyWordParseList[word].maxPrice = newPrice;
+                                                    jQuery("#BidWordParselist").jqGrid('setCell', sIds[i], 'maxPrice', newPrice, { color: 'red' });
+                                                } else {
+                                                    var newPrice = parseFloat(KeyWordParseList[word].avgPrice_hwl) > parseFloat(tVal).toFixed(2) ? parseFloat(tVal).toFixed(2) : parseFloat(KeyWordParseList[word].avgPrice_hwl);
+                                                    KeyWordParseList[word].maxMobilePrice = newPrice;
+                                                    jQuery("#BidWordParselist").jqGrid('setCell', sIds[i], 'maxMobilePrice', newPrice, { color: 'red' });
+                                                };
+                                            }
+                                        };
+                                        jQuery("#BidWordParselist").jqGrid('setFrozenColumns');
+
+                                    });
+
+                                    $(".tpsHelp").each(function () {
+                                        $(this).click(function () {
+                                            var indexd = $(this).attr("data");
+                                            var tpsCnt = "";
+                                            if (indexd == "0") {
+                                                tpsCnt = "出价只能是0.05到<br>99.99之间的数字！";
+                                            }
+                                            if (indexd == "1") {
+                                                tpsCnt = "如更改值，将会同步设置到推广单元！";
+                                            };
+                                            if (indexd == "2") {
+                                                tpsCnt = "留空，表示不设置最高限价;<br>设置限价，关键词最高出价不超此价！";
+                                            };
+                                            if (indexd == "3") {
+                                                tpsCnt = "设置前请先拉取行业数据;<br>留空，表示不设置最高限价;<br>设置限价，关键词最高出价不超此价！";
+                                            };
+                                            if (indexd == "4") {
+                                                tpsCnt = "如最低出价小于0.05元，<br>将按照0.05元出价";
+                                            };
+                                            if (indexd == "5") {
+                                                tpsCnt = "如最低出价小于0.05元，<br>将按照0.05元出价";
+                                            };
+                                            layer.tips(tpsCnt, this);
+                                        });
+                                    });
+                                },
+                                title: [btnName, 'font-size:18px;'],
+                            });
+
+                        };// new Function("pot", getcfService("site/get-keyword-parse-update-price-js", User));
+                        cf_editBidWrodParsePrice(0);
+                        return;
+                    });
+                    $("#bt_WordUpdatePriceParse_wl").click(function () {
+                        layer.close(tipIndex);
+                        var cf_editBidWrodParsePrice = function (pot) {
+                            var sIds = getjqGridSelarrrow("#BidWordParselist");
+                            if (sIds.length < 1) {
+                                layer.msg("未选中任何关键词！");
+                                return;
+                            };
+                            if (pot == 0) {
+                                //修改计算机价格
+                                btnName = "修改计算机出价";
+
+                            } else {
+                                //修改移动价格
+                                btnName = "修改移动出价";
+                            };
+                            var divPriceUi = '<div style="padding: 15px; line-height: 22px; background-color: #fff; color: #000;">'
+                                + '<div class="">'
+                                + '<label for="radio_batchPrice01"><input type="radio" id="radio_batchPrice01" name="batchMode" value="0" checked="">自定义出价：</label><input id="batchMode_0_val" type="text" class="input w60"/>元<i class="iconfont tpsHelp" data="0" style="color:red;cursor:help;">Ũ</i><br>'
+                                + '<label for="radio_batchPrice04"><input type="radio" id="radio_batchPrice04" name="batchMode" value="3">市场均价出价，最高限价：</label><input id="batchMode_3_val"  type="text" class="input w60"/>元<i class="iconfont tpsHelp" data="3" style="color:red;cursor:help;">Ũ</i><br>'
+                                + '</div>'
+                                + '</div>';
+                            layer.open({
+                                type: 1,
+                                closeBtn: false,
+                                area: '350px;',
+                                //shade: 0.8,
+                                id: 'LAY_layuipro', //设定一个id，防止重复弹出
+                                resize: false,
+                                btn: ['修改', '取消'],
+                                moveType: 1,//拖拽模式，0或者1
+                                content: divPriceUi,
+                                success: function (layero) {
+                                    var btn = layero.find('.layui-layer-btn');
+                                    btn.find('.layui-layer-btn0').click(function () {
+                                        var batchMode = $("input[name='batchMode'][type='radio']:checked").val();
+                                        var tVal = $("#batchMode_" + batchMode + "_val").val();
+                                        jQuery("#BidWordParselist").jqGrid('destroyFrozenColumns');
+                                        for (var i = 0; i < sIds.length; i++) {
+                                            var word = jQuery("#BidWordParselist").jqGrid('getCell', sIds[i], 'word');
+                                            if (batchMode == "0") {
+                                                if (pot == 0) {
+                                                    KeyWordParseList[word].maxPrice = parseFloat(tVal).toFixed(2);
+                                                    jQuery("#BidWordParselist").jqGrid('setCell', sIds[i], 'maxPrice', parseFloat(tVal).toFixed(2), { color: 'red' });
+                                                } else {
+                                                    KeyWordParseList[word].maxMobilePrice = parseFloat(tVal).toFixed(2);
+                                                    jQuery("#BidWordParselist").jqGrid('setCell', sIds[i], 'maxMobilePrice', parseFloat(tVal).toFixed(2), { color: 'red' });
+                                                };
+                                            };
+                                            if (batchMode == "3") {
+                                                if (pot == 0) {
+                                                    var newPrice = parseFloat(KeyWordParseList[word].avgPrice_hpc) > parseFloat(tVal).toFixed(2) ? parseFloat(tVal).toFixed(2) : parseFloat(KeyWordParseList[word].avgPrice_hpc);
+                                                    KeyWordParseList[word].maxPrice = newPrice;
+                                                    jQuery("#BidWordParselist").jqGrid('setCell', sIds[i], 'maxPrice', newPrice, { color: 'red' });
+                                                } else {
+                                                    var newPrice = parseFloat(KeyWordParseList[word].avgPrice_hwl) > parseFloat(tVal).toFixed(2) ? parseFloat(tVal).toFixed(2) : parseFloat(KeyWordParseList[word].avgPrice_hwl);
+                                                    KeyWordParseList[word].maxMobilePrice = newPrice;
+                                                    jQuery("#BidWordParselist").jqGrid('setCell', sIds[i], 'maxMobilePrice', newPrice, { color: 'red' });
+                                                };
+                                            }
+                                        };
+                                        jQuery("#BidWordParselist").jqGrid('setFrozenColumns');
+
+                                    });
+
+                                    $(".tpsHelp").each(function () {
+                                        $(this).click(function () {
+                                            var indexd = $(this).attr("data");
+                                            var tpsCnt = "";
+                                            if (indexd == "0") {
+                                                tpsCnt = "出价只能是0.05到<br>99.99之间的数字！";
+                                            }
+                                            if (indexd == "1") {
+                                                tpsCnt = "如更改值，将会同步设置到推广单元！";
+                                            };
+                                            if (indexd == "2") {
+                                                tpsCnt = "留空，表示不设置最高限价;<br>设置限价，关键词最高出价不超此价！";
+                                            };
+                                            if (indexd == "3") {
+                                                tpsCnt = "设置前请先拉取行业数据;<br>留空，表示不设置最高限价;<br>设置限价，关键词最高出价不超此价！";
+                                            };
+                                            if (indexd == "4") {
+                                                tpsCnt = "如最低出价小于0.05元，<br>将按照0.05元出价";
+                                            };
+                                            if (indexd == "5") {
+                                                tpsCnt = "如最低出价小于0.05元，<br>将按照0.05元出价";
+                                            };
+                                            layer.tips(tpsCnt, this);
+                                        });
+                                    });
+                                },
+                                title: [btnName, 'font-size:18px;'],
+                            });
+                        };// new Function("pot", getcfService("site/get-keyword-parse-update-price-js", User));
+                        cf_editBidWrodParsePrice(1);
+                        return;
+                    });
+                    /* cf_do(); return;*///PS,这个地方的方法定义暂未找到
+                });
+                //修改匹配方式
+                $("#bt_BidWordMatchParse").click(function () {
+
+
+                    var divCont = '<button class="layui-btn layui-btn-normal" id="bt_BidWordMatchParse_4">广泛匹配</button><br>'
+                        + '<button class="layui-btn layui-btn-normal" id="bt_BidWordMatchParse_1">精准匹配</button>';
+                    var tipIndex = layer.tips(divCont, '#bt_BidWordMatchParse', { tips: [3, '#1E9FFF'] });
+                    $("#bt_BidWordMatchParse_4").click(function () {
+                        var cf_updateMatchParse = function (match) {
+                            var bidGrid = jQuery("#BidWordParselist").jqGrid({
+                                datatype: "local",
+                                colNames: [
+                                    '关键词', '匹配', 'PC出价', 'WL出价', '数据时段',
+                                    '展现量', '展现占比', '点击量', '点击率', '转化率', '市场均价', '竞争度', '成交额', '客单均价', 'UV价值', '行业ROI',
+                                    '展现量', '展现占比', '点击量', '点击率', '转化率', '市场均价', '竞争度', '成交额', '客单均价', 'UV价值', '行业ROI',
+                                ],
+                                colModel: [
+                                    { name: 'word', index: 'word', width: 120, sorttype: 'string', searchoptions: { sopt: ['cn', 'bw', 'eq'] }, frozen: true },
+                                    { name: 'matchScope', index: 'matchScope', width: 65, stype: 'select', formatter: 'select', editoptions: { value: ":All;4:广泛;1:精准" }, frozen: true },//matchScope
+                                    { name: 'maxPrice', index: 'maxPrice', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] }, frozen: true }, //maxPrice
+                                    { name: 'maxMobilePrice', index: 'maxMobilePrice', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] }, frozen: true },//maxMobilePrice
+                                    { name: 'dateArea', index: 'dateArea', width: 65, stype: 'select', formatter: 'select', editoptions: { value: "-1:昨天;-8:过去7天;-15:过去14天" }, frozen: true },
+
+                                    //行业无线数据
+                                    { name: 'impression_hwl', index: 'impression_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impression
+                                    { name: 'impressionRate_hwl', index: 'impressionRate_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impressionRate
+                                    { name: 'click_hwl', index: 'click_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//click
+                                    { name: 'ctr_hwl', index: 'ctr_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//ctr
+                                    { name: 'cvr_hwl', index: 'cvr_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } }, //cvr
+                                    { name: 'avgPrice_hwl', index: 'avgPrice_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//avgPrice
+                                    { name: 'competition_hwl', index: 'competition_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//competition
+                                    { name: 'price_hwl', index: 'price_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//price
+                                    { name: 'pct_hwl', index: 'pct_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业客单价
+                                    { name: 'uvvalue_hwl', index: 'uvvalue_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业UV
+                                    { name: 'roi_hwl', index: 'roi_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业Roi
+                                    //行业PC数据
+                                    { name: 'impression_hpc', index: 'impression_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impression
+                                    { name: 'impressionRate_hpc', index: 'impressionRate_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impressionRate
+                                    { name: 'click_hpc', index: 'click_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//click
+                                    { name: 'ctr_hpc', index: 'ctr_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//ctr
+                                    { name: 'cvr_hpc', index: 'cvr_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } }, //cvr
+                                    { name: 'avgPrice_hpc', index: 'avgPrice_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//avgPrice
+                                    { name: 'competition_hpc', index: 'competition_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//competition
+                                    { name: 'price_hpc', index: 'price_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//price
+                                    { name: 'pct_hpc', index: 'pct_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业客单价
+                                    { name: 'uvvalue_hpc', index: 'uvvalue_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业UV
+                                    { name: 'roi_hpc', index: 'roi_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业Roi
+
+                                ],
+                                rowNum: 200,
+                                rowList: [20, 50, 100, 200],
+                                pager: '#BidWordParsepager',
+                                sortname: 'id',
+                                sortorder: "desc",
+                                multiselect: true, //允许多选
+                                viewrecords: true,
+                                loadonce: true,
+                                rownumbers: true,
+                                height: (h - 185),
+                                width: (w - 10),
+                                shrinkToFit: false,
+                                toolbar: [true, "top"],
+                                caption: "关键词解析"
+                            });
+                            jQuery("#BidWordParselist").jqGrid('setGroupHeaders', {
+                                useColSpanStyle: true,
+                                groupHeaders: [
+                                    { startColumnName: 'word', numberOfColumns: 5, titleText: '基础数据项' },
+                                    { startColumnName: 'impression_hwl', numberOfColumns: 11, titleText: '行业无线数据' },
+                                    { startColumnName: 'impression_hpc', numberOfColumns: 11, titleText: '行业PC数据' }
+                                ]
+                            });
+
+                            //安装过滤条 并隐藏
+                            jQuery("#BidWordParselist").jqGrid('filterToolbar', { stringResult: true, searchOnEnter: false, searchOperators: true });
+                            bidGrid[0].toggleToolbar();
+                            //冻结列
+                            jQuery("#BidWordParselist").jqGrid('setFrozenColumns');
+                            //添加导航功能按钮  过滤条
+                            $("#t_BidWordParselist").append('<div class="layui-btn-group"> <button class="layui-btn layui-btn-warm layui-btn-mini" id="bt_getbidWordloadParseSeach">高级筛选</button><button class="layui-btn layui-btn-primary layui-btn-mini" id="bt_getbidWordloadfilterParse">toggle过滤</button><button class="layui-btn layui-btn-primary layui-btn-mini" id="bt_getbidWordloadfilterclearParse">clear过滤</button></div>');
+
+                            //高级筛选
+                            $("#bt_getbidWordloadParseSeach").click(function () {
+                                jQuery("#BidWordParselist").jqGrid('searchGrid', { multipleSearch: true });
+                            });
+
+                            //过滤条
+                            $("#bt_getbidWordloadfilterParse").click(function () {
+                                jQuery("#BidWordParselist").jqGrid('destroyFrozenColumns');
+                                bidGrid[0].toggleToolbar();
+                                jQuery("#BidWordParselist").jqGrid('setFrozenColumns');//bt_getbidWordloadfilterclear
+                            });
+                            $("#bt_getbidWordloadfilterclearParse").click(function () {
+                                bidGrid[0].clearToolbar();
+                            });
+
+                            KeyWordParseOutUI();
+                        };// new Function("match", getcfService("site/get-keyword-parse-reg-mode-js", User));
+                        cf_updateMatchParse("4");
+                        layer.close(tipIndex);
+                    });
+                    $("#bt_BidWordMatchParse_1").click(function () {
+                        var cf_updateMatchParse = function (match) {
+                            var bidGrid = jQuery("#BidWordParselist").jqGrid({
+                                datatype: "local",
+                                colNames: [
+                                    '关键词', '匹配', 'PC出价', 'WL出价', '数据时段',
+                                    '展现量', '展现占比', '点击量', '点击率', '转化率', '市场均价', '竞争度', '成交额', '客单均价', 'UV价值', '行业ROI',
+                                    '展现量', '展现占比', '点击量', '点击率', '转化率', '市场均价', '竞争度', '成交额', '客单均价', 'UV价值', '行业ROI',
+                                ],
+                                colModel: [
+                                    { name: 'word', index: 'word', width: 120, sorttype: 'string', searchoptions: { sopt: ['cn', 'bw', 'eq'] }, frozen: true },
+                                    { name: 'matchScope', index: 'matchScope', width: 65, stype: 'select', formatter: 'select', editoptions: { value: ":All;4:广泛;1:精准" }, frozen: true },//matchScope
+                                    { name: 'maxPrice', index: 'maxPrice', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] }, frozen: true }, //maxPrice
+                                    { name: 'maxMobilePrice', index: 'maxMobilePrice', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] }, frozen: true },//maxMobilePrice
+                                    { name: 'dateArea', index: 'dateArea', width: 65, stype: 'select', formatter: 'select', editoptions: { value: "-1:昨天;-8:过去7天;-15:过去14天" }, frozen: true },
+
+                                    //行业无线数据
+                                    { name: 'impression_hwl', index: 'impression_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impression
+                                    { name: 'impressionRate_hwl', index: 'impressionRate_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impressionRate
+                                    { name: 'click_hwl', index: 'click_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//click
+                                    { name: 'ctr_hwl', index: 'ctr_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//ctr
+                                    { name: 'cvr_hwl', index: 'cvr_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } }, //cvr
+                                    { name: 'avgPrice_hwl', index: 'avgPrice_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//avgPrice
+                                    { name: 'competition_hwl', index: 'competition_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//competition
+                                    { name: 'price_hwl', index: 'price_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//price
+                                    { name: 'pct_hwl', index: 'pct_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业客单价
+                                    { name: 'uvvalue_hwl', index: 'uvvalue_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业UV
+                                    { name: 'roi_hwl', index: 'roi_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业Roi
+                                    //行业PC数据
+                                    { name: 'impression_hpc', index: 'impression_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impression
+                                    { name: 'impressionRate_hpc', index: 'impressionRate_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impressionRate
+                                    { name: 'click_hpc', index: 'click_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//click
+                                    { name: 'ctr_hpc', index: 'ctr_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//ctr
+                                    { name: 'cvr_hpc', index: 'cvr_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } }, //cvr
+                                    { name: 'avgPrice_hpc', index: 'avgPrice_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//avgPrice
+                                    { name: 'competition_hpc', index: 'competition_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//competition
+                                    { name: 'price_hpc', index: 'price_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//price
+                                    { name: 'pct_hpc', index: 'pct_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业客单价
+                                    { name: 'uvvalue_hpc', index: 'uvvalue_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业UV
+                                    { name: 'roi_hpc', index: 'roi_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业Roi
+
+                                ],
+                                rowNum: 200,
+                                rowList: [20, 50, 100, 200],
+                                pager: '#BidWordParsepager',
+                                sortname: 'id',
+                                sortorder: "desc",
+                                multiselect: true, //允许多选
+                                viewrecords: true,
+                                loadonce: true,
+                                rownumbers: true,
+                                height: (h - 185),
+                                width: (w - 10),
+                                shrinkToFit: false,
+                                toolbar: [true, "top"],
+                                caption: "关键词解析"
+                            });
+                            jQuery("#BidWordParselist").jqGrid('setGroupHeaders', {
+                                useColSpanStyle: true,
+                                groupHeaders: [
+                                    { startColumnName: 'word', numberOfColumns: 5, titleText: '基础数据项' },
+                                    { startColumnName: 'impression_hwl', numberOfColumns: 11, titleText: '行业无线数据' },
+                                    { startColumnName: 'impression_hpc', numberOfColumns: 11, titleText: '行业PC数据' }
+                                ]
+                            });
+
+                            //安装过滤条 并隐藏
+                            jQuery("#BidWordParselist").jqGrid('filterToolbar', { stringResult: true, searchOnEnter: false, searchOperators: true });
+                            bidGrid[0].toggleToolbar();
+                            //冻结列
+                            jQuery("#BidWordParselist").jqGrid('setFrozenColumns');
+                            //添加导航功能按钮  过滤条
+                            $("#t_BidWordParselist").append('<div class="layui-btn-group"> <button class="layui-btn layui-btn-warm layui-btn-mini" id="bt_getbidWordloadParseSeach">高级筛选</button><button class="layui-btn layui-btn-primary layui-btn-mini" id="bt_getbidWordloadfilterParse">toggle过滤</button><button class="layui-btn layui-btn-primary layui-btn-mini" id="bt_getbidWordloadfilterclearParse">clear过滤</button></div>');
+
+                            //高级筛选
+                            $("#bt_getbidWordloadParseSeach").click(function () {
+                                jQuery("#BidWordParselist").jqGrid('searchGrid', { multipleSearch: true });
+                            });
+
+                            //过滤条
+                            $("#bt_getbidWordloadfilterParse").click(function () {
+                                jQuery("#BidWordParselist").jqGrid('destroyFrozenColumns');
+                                bidGrid[0].toggleToolbar();
+                                jQuery("#BidWordParselist").jqGrid('setFrozenColumns');//bt_getbidWordloadfilterclear
+                            });
+                            $("#bt_getbidWordloadfilterclearParse").click(function () {
+                                bidGrid[0].clearToolbar();
+                            });
+
+                            KeyWordParseOutUI();
+                        };// new Function("match", getcfService("site/get-keyword-parse-reg-mode-js", User));
+                        cf_updateMatchParse("1");
+                        layer.close(tipIndex);
+                    });
+                    return;
+                });
+                //提交到宝贝
+                $("#bt_AddToAdGroupParse").click(function () {
+                    var cf_do = function () {
+                        var bidGrid = jQuery("#BidWordParselist").jqGrid({
+                            datatype: "local",
+                            colNames: [
+                                '关键词', '匹配', 'PC出价', 'WL出价', '数据时段',
+                                '展现量', '展现占比', '点击量', '点击率', '转化率', '市场均价', '竞争度', '成交额', '客单均价', 'UV价值', '行业ROI',
+                                '展现量', '展现占比', '点击量', '点击率', '转化率', '市场均价', '竞争度', '成交额', '客单均价', 'UV价值', '行业ROI',
+                            ],
+                            colModel: [
+                                { name: 'word', index: 'word', width: 120, sorttype: 'string', searchoptions: { sopt: ['cn', 'bw', 'eq'] }, frozen: true },
+                                { name: 'matchScope', index: 'matchScope', width: 65, stype: 'select', formatter: 'select', editoptions: { value: ":All;4:广泛;1:精准" }, frozen: true },//matchScope
+                                { name: 'maxPrice', index: 'maxPrice', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] }, frozen: true }, //maxPrice
+                                { name: 'maxMobilePrice', index: 'maxMobilePrice', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] }, frozen: true },//maxMobilePrice
+                                { name: 'dateArea', index: 'dateArea', width: 65, stype: 'select', formatter: 'select', editoptions: { value: "-1:昨天;-8:过去7天;-15:过去14天" }, frozen: true },
+
+                                //行业无线数据
+                                { name: 'impression_hwl', index: 'impression_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impression
+                                { name: 'impressionRate_hwl', index: 'impressionRate_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impressionRate
+                                { name: 'click_hwl', index: 'click_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//click
+                                { name: 'ctr_hwl', index: 'ctr_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//ctr
+                                { name: 'cvr_hwl', index: 'cvr_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } }, //cvr
+                                { name: 'avgPrice_hwl', index: 'avgPrice_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//avgPrice
+                                { name: 'competition_hwl', index: 'competition_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//competition
+                                { name: 'price_hwl', index: 'price_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//price
+                                { name: 'pct_hwl', index: 'pct_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业客单价
+                                { name: 'uvvalue_hwl', index: 'uvvalue_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业UV
+                                { name: 'roi_hwl', index: 'roi_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业Roi
+                                //行业PC数据
+                                { name: 'impression_hpc', index: 'impression_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impression
+                                { name: 'impressionRate_hpc', index: 'impressionRate_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impressionRate
+                                { name: 'click_hpc', index: 'click_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//click
+                                { name: 'ctr_hpc', index: 'ctr_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//ctr
+                                { name: 'cvr_hpc', index: 'cvr_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } }, //cvr
+                                { name: 'avgPrice_hpc', index: 'avgPrice_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//avgPrice
+                                { name: 'competition_hpc', index: 'competition_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//competition
+                                { name: 'price_hpc', index: 'price_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//price
+                                { name: 'pct_hpc', index: 'pct_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业客单价
+                                { name: 'uvvalue_hpc', index: 'uvvalue_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业UV
+                                { name: 'roi_hpc', index: 'roi_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业Roi
+
+                            ],
+                            rowNum: 200,
+                            rowList: [20, 50, 100, 200],
+                            pager: '#BidWordParsepager',
+                            sortname: 'id',
+                            sortorder: "desc",
+                            multiselect: true, //允许多选
+                            viewrecords: true,
+                            loadonce: true,
+                            rownumbers: true,
+                            height: (h - 185),
+                            width: (w - 10),
+                            shrinkToFit: false,
+                            toolbar: [true, "top"],
+                            caption: "关键词解析"
+                        });
+                        jQuery("#BidWordParselist").jqGrid('setGroupHeaders', {
+                            useColSpanStyle: true,
+                            groupHeaders: [
+                                { startColumnName: 'word', numberOfColumns: 5, titleText: '基础数据项' },
+                                { startColumnName: 'impression_hwl', numberOfColumns: 11, titleText: '行业无线数据' },
+                                { startColumnName: 'impression_hpc', numberOfColumns: 11, titleText: '行业PC数据' }
+                            ]
+                        });
+
+                        //安装过滤条 并隐藏
+                        jQuery("#BidWordParselist").jqGrid('filterToolbar', { stringResult: true, searchOnEnter: false, searchOperators: true });
+                        bidGrid[0].toggleToolbar();
+                        //冻结列
+                        jQuery("#BidWordParselist").jqGrid('setFrozenColumns');
+                        //添加导航功能按钮  过滤条
+                        $("#t_BidWordParselist").append('<div class="layui-btn-group"> <button class="layui-btn layui-btn-warm layui-btn-mini" id="bt_getbidWordloadParseSeach">高级筛选</button><button class="layui-btn layui-btn-primary layui-btn-mini" id="bt_getbidWordloadfilterParse">toggle过滤</button><button class="layui-btn layui-btn-primary layui-btn-mini" id="bt_getbidWordloadfilterclearParse">clear过滤</button></div>');
+
+                        //高级筛选
+                        $("#bt_getbidWordloadParseSeach").click(function () {
+                            jQuery("#BidWordParselist").jqGrid('searchGrid', { multipleSearch: true });
+                        });
+
+                        //过滤条
+                        $("#bt_getbidWordloadfilterParse").click(function () {
+                            jQuery("#BidWordParselist").jqGrid('destroyFrozenColumns');
+                            bidGrid[0].toggleToolbar();
+                            jQuery("#BidWordParselist").jqGrid('setFrozenColumns');//bt_getbidWordloadfilterclear
+                        });
+                        $("#bt_getbidWordloadfilterclearParse").click(function () {
+                            bidGrid[0].clearToolbar();
+                        });
+
+                        KeyWordParseOutUI();
+                        /*
+                           if (!getUserRank(2, UserRank)) {
+                               layer.msg('此功能对黄金版及以上版本用户开放，需要对当前店铺（' + User.nickName + '）授权！\\n 请自助开通授权或联系管理员开通！');
+                               return;
+                           };*/
+                        var cf_DoAddToAdGroupParse = function () {
+                            if (!getUrlInfo()) { return };
+                            var sIds = getjqGridSelarrrow("#BidWordParselist");
+                            if (sIds.length < 1) {
+                                layer.msg('未选中任何关键词');
+                                return;
+                            };
+                            var keywords = new Array();
+                            for (var i in sIds) {
+                                var keyId = jQuery("#BidWordParselist").jqGrid('getCell', sIds[i], 'word');
+                                var pMode = '{'
+                                    + '"word":"' + KeyWordParseList[keyId].word + '",'
+                                    + '"matchScope":' + KeyWordParseList[keyId].matchScope + ','
+                                    + '"isDefaultPrice":0,'
+                                    + '"maxPrice":"' + (parseFloat(KeyWordParseList[keyId].maxPrice) * 100).toFixed(0) + '",'
+                                    + '"maxMobilePrice":"' + (parseFloat(KeyWordParseList[keyId].maxMobilePrice) * 100).toFixed(0) + '",'
+                                    + '"mobileIsDefaultPrice":0'
+                                    + '}';
+                                keywords.push(pMode);
+                            };
+                            var url = 'https://subway.simba.taobao.com/bidword/add.htm';
+                            var postData = 'adGroupId=' + UriInfo.adGroupId + '&keywords=[' + keywords.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                            $.ajax({
+                                type: "POST",
+                                url: url,
+                                data: postData,
+                                async: false,
+                                success: function (data) {
+                                    layer.msg('选中关键词已提交到宝贝：' + data.msg);
+                                },
+                                error: function () { }
+                            });
+                        };// new Function(getcfService("site/get-keyword-parse-do-add-to-ad-group-parse-js", User));
+                        cf_DoAddToAdGroupParse();
+                    };// new Function(getcfService("site/get-keyword-parse-add-to-ad-group-parse-js", User));
+                    cf_do();
+                    return;
+                });
+                //打印grid
+                var cf_pageInitBidWordParse = function (w, h) {
+                    var bidGrid = jQuery("#BidWordParselist").jqGrid({
+                        datatype: "local",
+                        colNames: [
+                            '关键词', '匹配', 'PC出价', 'WL出价', '数据时段',
+                            '展现量', '展现占比', '点击量', '点击率', '转化率', '市场均价', '竞争度', '成交额', '客单均价', 'UV价值', '行业ROI',
+                            '展现量', '展现占比', '点击量', '点击率', '转化率', '市场均价', '竞争度', '成交额', '客单均价', 'UV价值', '行业ROI',
+                        ],
+                        colModel: [
+                            { name: 'word', index: 'word', width: 120, sorttype: 'string', searchoptions: { sopt: ['cn', 'bw', 'eq'] }, frozen: true },
+                            { name: 'matchScope', index: 'matchScope', width: 65, stype: 'select', formatter: 'select', editoptions: { value: ":All;4:广泛;1:精准" }, frozen: true },//matchScope
+                            { name: 'maxPrice', index: 'maxPrice', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] }, frozen: true }, //maxPrice
+                            { name: 'maxMobilePrice', index: 'maxMobilePrice', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] }, frozen: true },//maxMobilePrice
+                            { name: 'dateArea', index: 'dateArea', width: 65, stype: 'select', formatter: 'select', editoptions: { value: "-1:昨天;-8:过去7天;-15:过去14天" }, frozen: true },
+
+                            //行业无线数据
+                            { name: 'impression_hwl', index: 'impression_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impression
+                            { name: 'impressionRate_hwl', index: 'impressionRate_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impressionRate
+                            { name: 'click_hwl', index: 'click_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//click
+                            { name: 'ctr_hwl', index: 'ctr_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//ctr
+                            { name: 'cvr_hwl', index: 'cvr_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } }, //cvr
+                            { name: 'avgPrice_hwl', index: 'avgPrice_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//avgPrice
+                            { name: 'competition_hwl', index: 'competition_hwl', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//competition
+                            { name: 'price_hwl', index: 'price_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//price
+                            { name: 'pct_hwl', index: 'pct_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业客单价
+                            { name: 'uvvalue_hwl', index: 'uvvalue_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业UV
+                            { name: 'roi_hwl', index: 'roi_hwl', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业Roi
+                            //行业PC数据
+                            { name: 'impression_hpc', index: 'impression_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impression
+                            { name: 'impressionRate_hpc', index: 'impressionRate_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//impressionRate
+                            { name: 'click_hpc', index: 'click_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//click
+                            { name: 'ctr_hpc', index: 'ctr_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//ctr
+                            { name: 'cvr_hpc', index: 'cvr_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } }, //cvr
+                            { name: 'avgPrice_hpc', index: 'avgPrice_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//avgPrice
+                            { name: 'competition_hpc', index: 'competition_hpc', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//competition
+                            { name: 'price_hpc', index: 'price_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//price
+                            { name: 'pct_hpc', index: 'pct_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业客单价
+                            { name: 'uvvalue_hpc', index: 'uvvalue_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业UV
+                            { name: 'roi_hpc', index: 'roi_hpc', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },//行业Roi
+
+                        ],
+                        rowNum: 200,
+                        rowList: [20, 50, 100, 200],
+                        pager: '#BidWordParsepager',
+                        sortname: 'id',
+                        sortorder: "desc",
+                        multiselect: true, //允许多选
+                        viewrecords: true,
+                        loadonce: true,
+                        rownumbers: true,
+                        height: (h - 185),
+                        width: (w - 10),
+                        shrinkToFit: false,
+                        toolbar: [true, "top"],
+                        caption: "关键词解析"
+                    });
+                    jQuery("#BidWordParselist").jqGrid('setGroupHeaders', {
+                        useColSpanStyle: true,
+                        groupHeaders: [
+                            { startColumnName: 'word', numberOfColumns: 5, titleText: '基础数据项' },
+                            { startColumnName: 'impression_hwl', numberOfColumns: 11, titleText: '行业无线数据' },
+                            { startColumnName: 'impression_hpc', numberOfColumns: 11, titleText: '行业PC数据' }
+                        ]
+                    });
+
+                    //安装过滤条 并隐藏
+                    jQuery("#BidWordParselist").jqGrid('filterToolbar', { stringResult: true, searchOnEnter: false, searchOperators: true });
+                    bidGrid[0].toggleToolbar();
+                    //冻结列
+                    jQuery("#BidWordParselist").jqGrid('setFrozenColumns');
+                    //添加导航功能按钮  过滤条
+                    $("#t_BidWordParselist").append('<div class="layui-btn-group"> <button class="layui-btn layui-btn-warm layui-btn-mini" id="bt_getbidWordloadParseSeach">高级筛选</button><button class="layui-btn layui-btn-primary layui-btn-mini" id="bt_getbidWordloadfilterParse">toggle过滤</button><button class="layui-btn layui-btn-primary layui-btn-mini" id="bt_getbidWordloadfilterclearParse">clear过滤</button></div>');
+
+                    //高级筛选
+                    $("#bt_getbidWordloadParseSeach").click(function () {
+                        jQuery("#BidWordParselist").jqGrid('searchGrid', { multipleSearch: true });
+                    });
+
+                    //过滤条
+                    $("#bt_getbidWordloadfilterParse").click(function () {
+                        jQuery("#BidWordParselist").jqGrid('destroyFrozenColumns');
+                        bidGrid[0].toggleToolbar();
+                        jQuery("#BidWordParselist").jqGrid('setFrozenColumns');//bt_getbidWordloadfilterclear
+                    });
+                    $("#bt_getbidWordloadfilterclearParse").click(function () {
+                        bidGrid[0].clearToolbar();
+                    });
+
+                    KeyWordParseOutUI();
+                };// new Function("w", "h", getcfService("site/get-keyword-parse-page-init-js", User));
+                cf_pageInitBidWordParse(w, h);
+
+            };// new Function(getcfService("site/get-keyword-parse-window-js", User));
+            cf_OpenLeyWordParse();

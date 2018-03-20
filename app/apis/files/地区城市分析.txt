@@ -1,0 +1,1796 @@
+var cf_AreaCityParse = function () {
+                if (!getUrlInfo()) { return };
+                var BtUI = '<button id="bt_AreaCityParse_01" class="layui-btn layui-btn-danger layui-btn-mini">今日实时</button>'
+                    + '<br><button id="bt_AreaCityParse_02" class="layui-btn layui-btn-danger layui-btn-mini">昨日数据</button>'
+                    + '<br><button id="bt_AreaCityParse_03" class="layui-btn layui-btn-danger layui-btn-mini">过去2天</button>'
+                    + '<br><button id="bt_AreaCityParse_04" class="layui-btn layui-btn-danger layui-btn-mini">所有(3天内)</button>';
+                layer.tips(BtUI, '#AreaCityParse', {
+                    tips: [3, '#3595CC']
+                });
+                var cf_OpenAreaCityParse = function (s, e, title) {
+                    var DivUI = '<div>'
+                        + '<table id="AreaCityParselist"></table>'
+                        + '<div id="AreaCityParsepager"></div>'
+                        + '<button id="bt_UpdateAreaCityToCam" class="layui-btn layui-btn-danger layui-btn-mini">将所选城市应用到当前计划设置</button>'
+                        + '</div>';
+                    var index = layer.open({
+                        type: 1,
+                        content: DivUI,
+                        area: ["832px", "700px"],
+                        title: false,
+                        success: function (layero) {
+                            $("#bt_UpdateAreaCityToCam").click(function () {
+                                if (!getUrlInfo()) { return };
+                                var cf_UpdateAreaCityToCampaign = function () {
+                                    var sIds = getjqGridSelarrrow("#AreaCityParselist");
+                                    if (sIds.length < 1) {
+                                        layer.msg("至少设置一个地区！");
+                                        return;
+                                    };
+                                    var ACode = new Array();
+                                    for (var i in sIds) {
+                                        var code = jQuery("#AreaCityParselist").jqGrid('getCell', sIds[i], 'code');
+                                        if (code != '不可设置')
+                                            ACode.push(code);
+                                    };
+                                    var postdata = "sla=json&isAjaxRequest=true&token=" + User.token;
+                                    $.ajax({
+                                        type: "POST",
+                                        url: 'https://subway.simba.taobao.com/area/update.htm?campaignId=' + UriInfo.campaignId + '&areaState=' + ACode.join(','),
+                                        data: postdata,
+                                        async: false,
+                                        datatype: "json",
+                                        success: function (data) {
+                                            if (data.code == 200) {
+                                                layer.msg('地区设置已更新！');
+                                            };
+                                        },
+                                        error: function () {
+                                            alert('n');
+                                        }
+                                    });
+                                };// new Function(getcfService("site/get-area-city-to-campaign-js", User));
+                                cf_UpdateAreaCityToCampaign();
+                            });
+                        }
+                    });
+                    var cf_pageInitAreaCityParse = function (s, e, title) {
+                        var bidGrid = jQuery("#AreaCityParselist").jqGrid({
+                            datatype: "local",
+                            colNames: [
+                                '城市', '省份', '花费', '点击量', '平均点击花费', '反馈量',
+                                '点击占比', '反馈率', '代码'
+                            ],
+                            colModel: [
+                                { name: 'cityname', index: 'cityname', width: 90, sorttype: 'string', searchoptions: { sopt: ['cn', 'bw', 'eq'] } },
+                                { name: 'provincename', index: 'provincename', width: 90, sorttype: "string", searchoptions: { sopt: ['cn', 'bw', 'eq'] } },
+                                { name: 'cost', index: 'cost', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                { name: 'click', index: 'click', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                { name: 'avgPrice', index: 'avgPrice', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                { name: 'effect', index: 'effect', width: 65, sorttype: "int", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                { name: 'clickRank', index: 'clickRank', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                { name: 'effectvr', index: 'effectvr', width: 65, sorttype: "number", searchoptions: { sopt: ['eq', 'lt', 'gt'] } },
+                                { name: 'code', index: 'code', width: 50, sorttype: "string", searchoptions: { sopt: ['cn', 'bw', 'eq'] } }
+                            ],
+                            rowNum: 100,
+                            rowList: [20, 50, 100, 200],
+                            pager: '#AreaCityParsepager',
+                            sortname: 'click',
+                            sortorder: "desc",
+                            multiselect: true, //允许多选
+                            viewrecords: true,
+                            loadonce: true,
+                            rownumbers: true,
+                            height: 540,
+                            width: 830,
+                            caption: title
+                        });
+                        jQuery("#AreaCityParselist").jqGrid('filterToolbar', { stringResult: true, searchOnEnter: false, searchOperators: true });
+
+                        //载入默认推荐词
+                        if (getUrlInfo()) {
+                            var index = layer.load(1); //换了种风格
+                            var cf_DoAreaCityParseForDate = function (s, e, index) {
+                                rptAdgroupClickList = new Array();
+                                var cf_GetAreaCityParseForDate = function (theDate, offSet, pageSize) {
+                                    var result;
+                                    var url = 'https://subway.simba.taobao.com/rtreport/rptAdgroupClickList.htm?theDate=' + theDate + '&campaignid=' + UriInfo.campaignId + '&adgroupid=' + UriInfo.adGroupId + '&offSet=' + offSet + '&pageSize=' + pageSize + '&traffictype=&mechanism=&filter=&bidword=';
+                                    var postData = "sla=json&isAjaxRequest=true&token=" + User.token;
+                                    $.ajax({
+                                        type: "POST",
+                                        url: url,
+                                        data: postData,
+                                        datatype: "json",
+                                        async: false,
+                                        success: function (data) {
+                                            if (data.code == 200) {
+                                                result = data.result;
+                                            };
+                                        },
+                                        error: function () {
+                                            alert("error:GetAreaCityParseForDate");
+                                        }
+                                    });
+                                    return result;
+                                };// new Function("theDate", "offSet", "pageSize", getcfService("site/get-area-city-parse-for-date-js", User));
+                                for (var i = s; i >= e; i--) {
+                                    var offSet = 0;
+                                    var pageSize = 200;
+                                    var theDate = laydate.now(i);
+                                    while (true) {
+                                        var result = cf_GetAreaCityParseForDate(theDate, offSet, pageSize);
+                                        rptAdgroupClickList = rptAdgroupClickList.concat(result);
+                                        if (result.length < pageSize) {
+                                            break;
+                                        }
+                                        else {
+                                            offSet = offSet + pageSize;
+                                        };
+                                    };
+
+                                };
+                                var cf_AreaCityAdGroupCityOutUI = function () {
+                                    var cityClickList = {};
+                                    var clickCount = rptAdgroupClickList.length;
+                                    var cf_getAreaCode = function () {
+                                        return [{
+                                            name: "华北地区",
+                                            contains: [{
+                                                name: "北京",
+                                                code: 19
+                                            },
+                                            {
+                                                name: "天津",
+                                                code: 461
+                                            },
+                                            {
+                                                name: "河北",
+                                                code: 125,
+                                                contains: [{
+                                                    code: 126,
+                                                    name: "保定"
+                                                },
+                                                {
+                                                    code: 129,
+                                                    name: "沧州"
+                                                },
+                                                {
+                                                    code: 132,
+                                                    name: "承德"
+                                                },
+                                                {
+                                                    code: 133,
+                                                    name: "邯郸"
+                                                },
+                                                {
+                                                    code: 134,
+                                                    name: "衡水"
+                                                },
+                                                {
+                                                    code: 135,
+                                                    name: "廊坊"
+                                                },
+                                                {
+                                                    code: 137,
+                                                    name: "秦皇岛"
+                                                },
+                                                {
+                                                    code: 138,
+                                                    name: "石家庄"
+                                                },
+                                                {
+                                                    code: 140,
+                                                    name: "唐山"
+                                                },
+                                                {
+                                                    code: 141,
+                                                    name: "邢台"
+                                                },
+                                                {
+                                                    code: 144,
+                                                    name: "张家口"
+                                                }]
+                                            },
+                                            {
+                                                name: "山西",
+                                                code: 393,
+                                                contains: [{
+                                                    code: 394,
+                                                    name: "长治"
+                                                },
+                                                {
+                                                    code: 395,
+                                                    name: "大同"
+                                                },
+                                                {
+                                                    code: 396,
+                                                    name: "晋城"
+                                                },
+                                                {
+                                                    code: 398,
+                                                    name: "临汾"
+                                                },
+                                                {
+                                                    code: 401,
+                                                    name: "朔州"
+                                                },
+                                                {
+                                                    code: 402,
+                                                    name: "太原"
+                                                },
+                                                {
+                                                    code: 403,
+                                                    name: "忻州"
+                                                },
+                                                {
+                                                    code: 404,
+                                                    name: "阳泉"
+                                                },
+                                                {
+                                                    code: 405,
+                                                    name: "运城"
+                                                },
+                                                {
+                                                    code: 597,
+                                                    name: "晋中"
+                                                },
+                                                {
+                                                    code: 598,
+                                                    name: "吕梁"
+                                                }]
+                                            },
+                                            {
+                                                name: "内蒙",
+                                                code: 333,
+                                                contains: [{
+                                                    code: 321,
+                                                    name: "呼伦贝尔"
+                                                },
+                                                {
+                                                    code: 328,
+                                                    name: "阿拉善"
+                                                },
+                                                {
+                                                    code: 336,
+                                                    name: "包头"
+                                                },
+                                                {
+                                                    code: 337,
+                                                    name: "赤峰"
+                                                },
+                                                {
+                                                    code: 339,
+                                                    name: "呼和浩特"
+                                                },
+                                                {
+                                                    code: 344,
+                                                    name: "通辽"
+                                                },
+                                                {
+                                                    code: 346,
+                                                    name: "乌海"
+                                                },
+                                                {
+                                                    code: 586,
+                                                    name: "鄂尔多斯"
+                                                },
+                                                {
+                                                    code: 587,
+                                                    name: "乌兰察布"
+                                                },
+                                                {
+                                                    code: 588,
+                                                    name: "巴彦淖尔"
+                                                },
+                                                {
+                                                    code: 589,
+                                                    name: "兴安盟"
+                                                },
+                                                {
+                                                    code: 590,
+                                                    name: "锡林郭勒"
+                                                }]
+                                            }]
+                                        },
+                                        {
+                                            name: "东北地区",
+                                            contains: [{
+                                                name: "辽宁",
+                                                code: 294,
+                                                contains: [{
+                                                    code: 295,
+                                                    name: "鞍山"
+                                                },
+                                                {
+                                                    code: 297,
+                                                    name: "本溪"
+                                                },
+                                                {
+                                                    code: 298,
+                                                    name: "朝阳"
+                                                },
+                                                {
+                                                    code: 300,
+                                                    name: "大连"
+                                                },
+                                                {
+                                                    code: 303,
+                                                    name: "丹东"
+                                                },
+                                                {
+                                                    code: 304,
+                                                    name: "抚顺"
+                                                },
+                                                {
+                                                    code: 305,
+                                                    name: "阜新"
+                                                },
+                                                {
+                                                    code: 306,
+                                                    name: "葫芦岛"
+                                                },
+                                                {
+                                                    code: 308,
+                                                    name: "锦州"
+                                                },
+                                                {
+                                                    code: 309,
+                                                    name: "辽阳"
+                                                },
+                                                {
+                                                    code: 310,
+                                                    name: "盘锦"
+                                                },
+                                                {
+                                                    code: 311,
+                                                    name: "沈阳"
+                                                },
+                                                {
+                                                    code: 312,
+                                                    name: "铁岭"
+                                                },
+                                                {
+                                                    code: 314,
+                                                    name: "营口"
+                                                }]
+                                            },
+                                            {
+                                                name: "吉林",
+                                                code: 234,
+                                                contains: [{
+                                                    code: 235,
+                                                    name: "白城"
+                                                },
+                                                {
+                                                    code: 237,
+                                                    name: "白山"
+                                                },
+                                                {
+                                                    code: 238,
+                                                    name: "长春"
+                                                },
+                                                {
+                                                    code: 239,
+                                                    name: "吉林市"
+                                                },
+                                                {
+                                                    code: 241,
+                                                    name: "辽源"
+                                                },
+                                                {
+                                                    code: 242,
+                                                    name: "四平"
+                                                },
+                                                {
+                                                    code: 244,
+                                                    name: "松原"
+                                                },
+                                                {
+                                                    code: 246,
+                                                    name: "通化"
+                                                },
+                                                {
+                                                    code: 249,
+                                                    name: "延边朝鲜族自治州"
+                                                }]
+                                            },
+                                            {
+                                                name: "黑龙江",
+                                                code: 165,
+                                                contains: [{
+                                                    code: 166,
+                                                    name: "大庆"
+                                                },
+                                                {
+                                                    code: 167,
+                                                    name: "哈尔滨"
+                                                },
+                                                {
+                                                    code: 169,
+                                                    name: "鹤岗"
+                                                },
+                                                {
+                                                    code: 170,
+                                                    name: "黑河"
+                                                },
+                                                {
+                                                    code: 173,
+                                                    name: "鸡西"
+                                                },
+                                                {
+                                                    code: 174,
+                                                    name: "佳木斯"
+                                                },
+                                                {
+                                                    code: 176,
+                                                    name: "牡丹江"
+                                                },
+                                                {
+                                                    code: 178,
+                                                    name: "七台河"
+                                                },
+                                                {
+                                                    code: 179,
+                                                    name: "齐齐哈尔"
+                                                },
+                                                {
+                                                    code: 180,
+                                                    name: "双鸭山"
+                                                },
+                                                {
+                                                    code: 181,
+                                                    name: "绥化"
+                                                },
+                                                {
+                                                    code: 183,
+                                                    name: "伊春"
+                                                },
+                                                {
+                                                    code: 622,
+                                                    name: "大兴安岭"
+                                                }]
+                                            }]
+                                        },
+                                        {
+                                            name: "华东地区",
+                                            contains: [{
+                                                code: 417,
+                                                name: "上海"
+                                            },
+                                            {
+                                                name: "江苏",
+                                                code: 255,
+                                                contains: [{
+                                                    code: 256,
+                                                    name: "常州"
+                                                },
+                                                {
+                                                    code: 257,
+                                                    name: "淮安"
+                                                },
+                                                {
+                                                    code: 259,
+                                                    name: "连云港"
+                                                },
+                                                {
+                                                    code: 260,
+                                                    name: "南京"
+                                                },
+                                                {
+                                                    code: 261,
+                                                    name: "南通"
+                                                },
+                                                {
+                                                    code: 262,
+                                                    name: "苏州"
+                                                },
+                                                {
+                                                    code: 265,
+                                                    name: "宿迁"
+                                                },
+                                                {
+                                                    code: 266,
+                                                    name: "泰州"
+                                                },
+                                                {
+                                                    code: 269,
+                                                    name: "无锡"
+                                                },
+                                                {
+                                                    code: 272,
+                                                    name: "徐州"
+                                                },
+                                                {
+                                                    code: 273,
+                                                    name: "盐城"
+                                                },
+                                                {
+                                                    code: 275,
+                                                    name: "扬州"
+                                                },
+                                                {
+                                                    code: 277,
+                                                    name: "镇江"
+                                                }]
+                                            },
+                                            {
+                                                name: "浙江",
+                                                code: 508,
+                                                contains: [{
+                                                    code: 509,
+                                                    name: "杭州"
+                                                },
+                                                {
+                                                    code: 511,
+                                                    name: "湖州"
+                                                },
+                                                {
+                                                    code: 512,
+                                                    name: "嘉兴"
+                                                },
+                                                {
+                                                    code: 514,
+                                                    name: "金华"
+                                                },
+                                                {
+                                                    code: 518,
+                                                    name: "丽水"
+                                                },
+                                                {
+                                                    code: 519,
+                                                    name: "宁波"
+                                                },
+                                                {
+                                                    code: 522,
+                                                    name: "绍兴"
+                                                },
+                                                {
+                                                    code: 523,
+                                                    name: "台州"
+                                                },
+                                                {
+                                                    code: 526,
+                                                    name: "温州"
+                                                },
+                                                {
+                                                    code: 528,
+                                                    name: "舟山"
+                                                },
+                                                {
+                                                    code: 529,
+                                                    name: "衢州"
+                                                }]
+                                            },
+                                            {
+                                                name: "福建",
+                                                code: 39,
+                                                contains: [{
+                                                    code: 40,
+                                                    name: "福州"
+                                                },
+                                                {
+                                                    code: 41,
+                                                    name: "龙岩"
+                                                },
+                                                {
+                                                    code: 42,
+                                                    name: "南平"
+                                                },
+                                                {
+                                                    code: 44,
+                                                    name: "宁德"
+                                                },
+                                                {
+                                                    code: 45,
+                                                    name: "莆田"
+                                                },
+                                                {
+                                                    code: 46,
+                                                    name: "泉州"
+                                                },
+                                                {
+                                                    code: 48,
+                                                    name: "三明"
+                                                },
+                                                {
+                                                    code: 50,
+                                                    name: "厦门"
+                                                },
+                                                {
+                                                    code: 51,
+                                                    name: "漳州"
+                                                }]
+                                            },
+                                            {
+                                                name: "安徽",
+                                                code: 1,
+                                                contains: [{
+                                                    code: 2,
+                                                    name: "安庆"
+                                                },
+                                                {
+                                                    code: 3,
+                                                    name: "蚌埠"
+                                                },
+                                                {
+                                                    code: 4,
+                                                    name: "巢湖"
+                                                },
+                                                {
+                                                    code: 5,
+                                                    name: "池州"
+                                                },
+                                                {
+                                                    code: 6,
+                                                    name: "滁州"
+                                                },
+                                                {
+                                                    code: 7,
+                                                    name: "阜阳"
+                                                },
+                                                {
+                                                    code: 8,
+                                                    name: "合肥"
+                                                },
+                                                {
+                                                    code: 9,
+                                                    name: "淮北"
+                                                },
+                                                {
+                                                    code: 10,
+                                                    name: "淮南"
+                                                },
+                                                {
+                                                    code: 11,
+                                                    name: "黄山"
+                                                },
+                                                {
+                                                    code: 12,
+                                                    name: "六安"
+                                                },
+                                                {
+                                                    code: 13,
+                                                    name: "马鞍山"
+                                                },
+                                                {
+                                                    code: 14,
+                                                    name: "宿州"
+                                                },
+                                                {
+                                                    code: 15,
+                                                    name: "铜陵"
+                                                },
+                                                {
+                                                    code: 16,
+                                                    name: "芜湖"
+                                                },
+                                                {
+                                                    code: 17,
+                                                    name: "宣城"
+                                                },
+                                                {
+                                                    code: 18,
+                                                    name: "亳州"
+                                                }]
+                                            },
+                                            {
+                                                name: "山东",
+                                                code: 368,
+                                                contains: [{
+                                                    code: 369,
+                                                    name: "滨州"
+                                                },
+                                                {
+                                                    code: 370,
+                                                    name: "德州"
+                                                },
+                                                {
+                                                    code: 371,
+                                                    name: "东营"
+                                                },
+                                                {
+                                                    code: 372,
+                                                    name: "菏泽"
+                                                },
+                                                {
+                                                    code: 373,
+                                                    name: "济南"
+                                                },
+                                                {
+                                                    code: 374,
+                                                    name: "济宁"
+                                                },
+                                                {
+                                                    code: 376,
+                                                    name: "莱芜"
+                                                },
+                                                {
+                                                    code: 377,
+                                                    name: "聊城"
+                                                },
+                                                {
+                                                    code: 379,
+                                                    name: "临沂"
+                                                },
+                                                {
+                                                    code: 380,
+                                                    name: "青岛"
+                                                },
+                                                {
+                                                    code: 381,
+                                                    name: "日照"
+                                                },
+                                                {
+                                                    code: 382,
+                                                    name: "泰安"
+                                                },
+                                                {
+                                                    code: 384,
+                                                    name: "威海"
+                                                },
+                                                {
+                                                    code: 386,
+                                                    name: "潍坊"
+                                                },
+                                                {
+                                                    code: 389,
+                                                    name: "烟台"
+                                                },
+                                                {
+                                                    code: 390,
+                                                    name: "枣庄"
+                                                },
+                                                {
+                                                    code: 392,
+                                                    name: "淄博"
+                                                }]
+                                            }]
+                                        },
+                                        {
+                                            name: "华中地区",
+                                            contains: [{
+                                                name: "河南",
+                                                code: 145,
+                                                contains: [{
+                                                    code: 146,
+                                                    name: "安阳"
+                                                },
+                                                {
+                                                    code: 147,
+                                                    name: "鹤壁"
+                                                },
+                                                {
+                                                    code: 148,
+                                                    name: "焦作"
+                                                },
+                                                {
+                                                    code: 149,
+                                                    name: "开封"
+                                                },
+                                                {
+                                                    code: 150,
+                                                    name: "洛阳"
+                                                },
+                                                {
+                                                    code: 151,
+                                                    name: "南阳"
+                                                },
+                                                {
+                                                    code: 152,
+                                                    name: "平顶山"
+                                                },
+                                                {
+                                                    code: 153,
+                                                    name: "三门峡"
+                                                },
+                                                {
+                                                    code: 155,
+                                                    name: "商丘"
+                                                },
+                                                {
+                                                    code: 156,
+                                                    name: "新乡"
+                                                },
+                                                {
+                                                    code: 157,
+                                                    name: "信阳"
+                                                },
+                                                {
+                                                    code: 159,
+                                                    name: "许昌"
+                                                },
+                                                {
+                                                    code: 160,
+                                                    name: "郑州"
+                                                },
+                                                {
+                                                    code: 161,
+                                                    name: "周口"
+                                                },
+                                                {
+                                                    code: 162,
+                                                    name: "驻马店"
+                                                },
+                                                {
+                                                    code: 163,
+                                                    name: "漯河"
+                                                },
+                                                {
+                                                    code: 164,
+                                                    name: "濮阳"
+                                                },
+                                                {
+                                                    code: 621,
+                                                    name: "济源"
+                                                }]
+                                            },
+                                            {
+                                                name: "湖北",
+                                                code: 184,
+                                                contains: [{
+                                                    code: 185,
+                                                    name: "鄂州"
+                                                },
+                                                {
+                                                    code: 186,
+                                                    name: "恩施"
+                                                },
+                                                {
+                                                    code: 188,
+                                                    name: "黄冈"
+                                                },
+                                                {
+                                                    code: 191,
+                                                    name: "黄石"
+                                                },
+                                                {
+                                                    code: 192,
+                                                    name: "荆门"
+                                                },
+                                                {
+                                                    code: 193,
+                                                    name: "荆州"
+                                                },
+                                                {
+                                                    code: 196,
+                                                    name: "十堰"
+                                                },
+                                                {
+                                                    code: 198,
+                                                    name: "随州"
+                                                },
+                                                {
+                                                    code: 200,
+                                                    name: "武汉"
+                                                },
+                                                {
+                                                    code: 203,
+                                                    name: "咸宁"
+                                                },
+                                                {
+                                                    code: 205,
+                                                    name: "襄阳"
+                                                },
+                                                {
+                                                    code: 207,
+                                                    name: "孝感"
+                                                },
+                                                {
+                                                    code: 210,
+                                                    name: "宜昌"
+                                                },
+                                                {
+                                                    code: 623,
+                                                    name: "潜江"
+                                                },
+                                                {
+                                                    code: 624,
+                                                    name: "神农架"
+                                                },
+                                                {
+                                                    code: 199,
+                                                    name: "天门"
+                                                },
+                                                {
+                                                    code: 202,
+                                                    name: "仙桃"
+                                                }]
+                                            },
+                                            {
+                                                name: "湖南",
+                                                code: 212,
+                                                contains: [{
+                                                    code: 213,
+                                                    name: "常德"
+                                                },
+                                                {
+                                                    code: 214,
+                                                    name: "长沙"
+                                                },
+                                                {
+                                                    code: 215,
+                                                    name: "郴州"
+                                                },
+                                                {
+                                                    code: 216,
+                                                    name: "衡阳"
+                                                },
+                                                {
+                                                    code: 218,
+                                                    name: "怀化"
+                                                },
+                                                {
+                                                    code: 220,
+                                                    name: "娄底"
+                                                },
+                                                {
+                                                    code: 223,
+                                                    name: "邵阳"
+                                                },
+                                                {
+                                                    code: 224,
+                                                    name: "湘潭"
+                                                },
+                                                {
+                                                    code: 227,
+                                                    name: "益阳"
+                                                },
+                                                {
+                                                    code: 228,
+                                                    name: "永州"
+                                                },
+                                                {
+                                                    code: 230,
+                                                    name: "岳阳"
+                                                },
+                                                {
+                                                    code: 232,
+                                                    name: "张家界"
+                                                },
+                                                {
+                                                    code: 233,
+                                                    name: "株洲"
+                                                },
+                                                {
+                                                    code: 585,
+                                                    name: "湘西"
+                                                }]
+                                            },
+                                            {
+                                                name: "江西",
+                                                code: 279,
+                                                contains: [{
+                                                    code: 280,
+                                                    name: "抚州"
+                                                },
+                                                {
+                                                    code: 282,
+                                                    name: "赣州"
+                                                },
+                                                {
+                                                    code: 283,
+                                                    name: "吉安"
+                                                },
+                                                {
+                                                    code: 285,
+                                                    name: "景德镇"
+                                                },
+                                                {
+                                                    code: 286,
+                                                    name: "九江"
+                                                },
+                                                {
+                                                    code: 288,
+                                                    name: "南昌"
+                                                },
+                                                {
+                                                    code: 289,
+                                                    name: "萍乡"
+                                                },
+                                                {
+                                                    code: 290,
+                                                    name: "上饶"
+                                                },
+                                                {
+                                                    code: 291,
+                                                    name: "新余"
+                                                },
+                                                {
+                                                    code: 292,
+                                                    name: "宜春"
+                                                },
+                                                {
+                                                    code: 293,
+                                                    name: "鹰潭"
+                                                }]
+                                            }]
+                                        },
+                                        {
+                                            name: "华南地区",
+                                            contains: [{
+                                                name: "广东",
+                                                code: 68,
+                                                contains: [{
+                                                    code: 69,
+                                                    name: "潮州"
+                                                },
+                                                {
+                                                    code: 70,
+                                                    name: "东莞"
+                                                },
+                                                {
+                                                    code: 71,
+                                                    name: "佛山"
+                                                },
+                                                {
+                                                    code: 73,
+                                                    name: "广州"
+                                                },
+                                                {
+                                                    code: 74,
+                                                    name: "河源"
+                                                },
+                                                {
+                                                    code: 75,
+                                                    name: "惠州"
+                                                },
+                                                {
+                                                    code: 76,
+                                                    name: "江门"
+                                                },
+                                                {
+                                                    code: 77,
+                                                    name: "揭阳"
+                                                },
+                                                {
+                                                    code: 78,
+                                                    name: "茂名"
+                                                },
+                                                {
+                                                    code: 79,
+                                                    name: "梅州"
+                                                },
+                                                {
+                                                    code: 80,
+                                                    name: "清远"
+                                                },
+                                                {
+                                                    code: 81,
+                                                    name: "汕头"
+                                                },
+                                                {
+                                                    code: 83,
+                                                    name: "汕尾"
+                                                },
+                                                {
+                                                    code: 84,
+                                                    name: "韶关"
+                                                },
+                                                {
+                                                    code: 85,
+                                                    name: "深圳"
+                                                },
+                                                {
+                                                    code: 86,
+                                                    name: "阳江"
+                                                },
+                                                {
+                                                    code: 87,
+                                                    name: "云浮"
+                                                },
+                                                {
+                                                    code: 88,
+                                                    name: "湛江"
+                                                },
+                                                {
+                                                    code: 89,
+                                                    name: "肇庆"
+                                                },
+                                                {
+                                                    code: 90,
+                                                    name: "中山"
+                                                },
+                                                {
+                                                    code: 91,
+                                                    name: "珠海"
+                                                }]
+                                            },
+                                            {
+                                                name: "海南",
+                                                code: 120,
+                                                contains: [{
+                                                    code: 121,
+                                                    name: "海口"
+                                                },
+                                                {
+                                                    code: 122,
+                                                    name: "三亚"
+                                                },
+                                                {
+                                                    code: 609,
+                                                    name: "白沙"
+                                                },
+                                                {
+                                                    code: 610,
+                                                    name: "昌江"
+                                                },
+                                                {
+                                                    code: 611,
+                                                    name: "澄迈"
+                                                },
+                                                {
+                                                    code: 612,
+                                                    name: "安定"
+                                                },
+                                                {
+                                                    code: 613,
+                                                    name: "东方"
+                                                },
+                                                {
+                                                    code: 614,
+                                                    name: "乐东"
+                                                },
+                                                {
+                                                    code: 615,
+                                                    name: "琼海"
+                                                },
+                                                {
+                                                    code: 616,
+                                                    name: "万宁"
+                                                },
+                                                {
+                                                    code: 617,
+                                                    name: "文昌"
+                                                },
+                                                {
+                                                    code: 618,
+                                                    name: "五指山"
+                                                },
+                                                {
+                                                    code: 619,
+                                                    name: "保亭"
+                                                },
+                                                {
+                                                    code: 620,
+                                                    name: "陵水"
+                                                }]
+                                            },
+                                            {
+                                                name: "广西",
+                                                code: 92,
+                                                contains: [{
+                                                    code: 93,
+                                                    name: "百色"
+                                                },
+                                                {
+                                                    code: 94,
+                                                    name: "北海"
+                                                },
+                                                {
+                                                    code: 96,
+                                                    name: "防城港"
+                                                },
+                                                {
+                                                    code: 98,
+                                                    name: "桂林"
+                                                },
+                                                {
+                                                    code: 99,
+                                                    name: "贵港"
+                                                },
+                                                {
+                                                    code: 100,
+                                                    name: "河池"
+                                                },
+                                                {
+                                                    code: 102,
+                                                    name: "贺州"
+                                                },
+                                                {
+                                                    code: 104,
+                                                    name: "柳州"
+                                                },
+                                                {
+                                                    code: 105,
+                                                    name: "南宁"
+                                                },
+                                                {
+                                                    code: 106,
+                                                    name: "钦州"
+                                                },
+                                                {
+                                                    code: 107,
+                                                    name: "梧州"
+                                                },
+                                                {
+                                                    code: 108,
+                                                    name: "玉林"
+                                                },
+                                                {
+                                                    code: 581,
+                                                    name: "来宾"
+                                                },
+                                                {
+                                                    code: 580,
+                                                    name: "崇左"
+                                                }]
+                                            }]
+                                        },
+                                        {
+                                            name: "西南地区",
+                                            contains: [{
+                                                name: "重庆",
+                                                code: 532
+                                            },
+                                            {
+                                                name: "四川",
+                                                code: 438,
+                                                contains: [{
+                                                    code: 440,
+                                                    name: "巴中"
+                                                },
+                                                {
+                                                    code: 441,
+                                                    name: "成都"
+                                                },
+                                                {
+                                                    code: 442,
+                                                    name: "达州"
+                                                },
+                                                {
+                                                    code: 443,
+                                                    name: "德阳"
+                                                },
+                                                {
+                                                    code: 444,
+                                                    name: "甘孜"
+                                                },
+                                                {
+                                                    code: 445,
+                                                    name: "广安"
+                                                },
+                                                {
+                                                    code: 447,
+                                                    name: "广元"
+                                                },
+                                                {
+                                                    code: 448,
+                                                    name: "乐山"
+                                                },
+                                                {
+                                                    code: 450,
+                                                    name: "眉山"
+                                                },
+                                                {
+                                                    code: 451,
+                                                    name: "绵阳"
+                                                },
+                                                {
+                                                    code: 452,
+                                                    name: "南充"
+                                                },
+                                                {
+                                                    code: 453,
+                                                    name: "内江"
+                                                },
+                                                {
+                                                    code: 454,
+                                                    name: "攀枝花"
+                                                },
+                                                {
+                                                    code: 455,
+                                                    name: "遂宁"
+                                                },
+                                                {
+                                                    code: 456,
+                                                    name: "雅安"
+                                                },
+                                                {
+                                                    code: 457,
+                                                    name: "宜宾"
+                                                },
+                                                {
+                                                    code: 458,
+                                                    name: "资阳"
+                                                },
+                                                {
+                                                    code: 459,
+                                                    name: "自贡"
+                                                },
+                                                {
+                                                    code: 460,
+                                                    name: "泸州"
+                                                },
+                                                {
+                                                    code: 600,
+                                                    name: "凉山"
+                                                },
+                                                {
+                                                    code: 601,
+                                                    name: "阿坝"
+                                                }]
+                                            },
+                                            {
+                                                name: "云南",
+                                                code: 488,
+                                                contains: [{
+                                                    code: 489,
+                                                    name: "保山"
+                                                },
+                                                {
+                                                    code: 490,
+                                                    name: "楚雄"
+                                                },
+                                                {
+                                                    code: 491,
+                                                    name: "大理"
+                                                },
+                                                {
+                                                    code: 492,
+                                                    name: "德宏"
+                                                },
+                                                {
+                                                    code: 497,
+                                                    name: "昆明"
+                                                },
+                                                {
+                                                    code: 499,
+                                                    name: "丽江"
+                                                },
+                                                {
+                                                    code: 500,
+                                                    name: "临沧"
+                                                },
+                                                {
+                                                    code: 502,
+                                                    name: "曲靖"
+                                                },
+                                                {
+                                                    code: 503,
+                                                    name: "普洱"
+                                                },
+                                                {
+                                                    code: 504,
+                                                    name: "文山"
+                                                },
+                                                {
+                                                    code: 506,
+                                                    name: "玉溪"
+                                                },
+                                                {
+                                                    code: 507,
+                                                    name: "昭通"
+                                                },
+                                                {
+                                                    code: 605,
+                                                    name: "西双版纳"
+                                                },
+                                                {
+                                                    code: 606,
+                                                    name: "红河"
+                                                },
+                                                {
+                                                    code: 607,
+                                                    name: "怒江"
+                                                },
+                                                {
+                                                    code: 608,
+                                                    name: "迪庆"
+                                                }]
+                                            },
+                                            {
+                                                name: "贵州",
+                                                code: 109,
+                                                contains: [{
+                                                    code: 110,
+                                                    name: "安顺"
+                                                },
+                                                {
+                                                    code: 111,
+                                                    name: "毕节"
+                                                },
+                                                {
+                                                    code: 112,
+                                                    name: "贵阳"
+                                                },
+                                                {
+                                                    code: 113,
+                                                    name: "六盘水"
+                                                },
+                                                {
+                                                    code: 117,
+                                                    name: "铜仁"
+                                                },
+                                                {
+                                                    code: 118,
+                                                    name: "遵义"
+                                                },
+                                                {
+                                                    code: 582,
+                                                    name: "黔东南"
+                                                },
+                                                {
+                                                    code: 583,
+                                                    name: "黔南"
+                                                },
+                                                {
+                                                    code: 584,
+                                                    name: "黔西"
+                                                }]
+                                            },
+                                            {
+                                                name: "西藏自治区",
+                                                code: 463,
+                                                contains: [{
+                                                    code: 464,
+                                                    name: "阿里"
+                                                },
+                                                {
+                                                    code: 465,
+                                                    name: "昌都"
+                                                },
+                                                {
+                                                    code: 466,
+                                                    name: "拉萨"
+                                                },
+                                                {
+                                                    code: 467,
+                                                    name: "林芝"
+                                                },
+                                                {
+                                                    code: 468,
+                                                    name: "那曲"
+                                                },
+                                                {
+                                                    code: 469,
+                                                    name: "日喀则"
+                                                },
+                                                {
+                                                    code: 470,
+                                                    name: "山南"
+                                                }]
+                                            }]
+                                        },
+                                        {
+                                            name: "西北地区",
+                                            contains: [{
+                                                name: "陕西",
+                                                code: 406,
+                                                contains: [{
+                                                    code: 407,
+                                                    name: "安康"
+                                                },
+                                                {
+                                                    code: 408,
+                                                    name: "宝鸡"
+                                                },
+                                                {
+                                                    code: 409,
+                                                    name: "汉中"
+                                                },
+                                                {
+                                                    code: 410,
+                                                    name: "商洛"
+                                                },
+                                                {
+                                                    code: 411,
+                                                    name: "铜川"
+                                                },
+                                                {
+                                                    code: 412,
+                                                    name: "渭南"
+                                                },
+                                                {
+                                                    code: 413,
+                                                    name: "西安"
+                                                },
+                                                {
+                                                    code: 414,
+                                                    name: "咸阳"
+                                                },
+                                                {
+                                                    code: 415,
+                                                    name: "延安"
+                                                },
+                                                {
+                                                    code: 416,
+                                                    name: "榆林"
+                                                }]
+                                            },
+                                            {
+                                                name: "甘肃",
+                                                code: 52,
+                                                contains: [{
+                                                    code: 53,
+                                                    name: "白银"
+                                                },
+                                                {
+                                                    code: 54,
+                                                    name: "定西"
+                                                },
+                                                {
+                                                    code: 55,
+                                                    name: "嘉峪关"
+                                                },
+                                                {
+                                                    code: 56,
+                                                    name: "金昌"
+                                                },
+                                                {
+                                                    code: 57,
+                                                    name: "酒泉"
+                                                },
+                                                {
+                                                    code: 59,
+                                                    name: "兰州"
+                                                },
+                                                {
+                                                    code: 60,
+                                                    name: "临夏"
+                                                },
+                                                {
+                                                    code: 61,
+                                                    name: "陇南"
+                                                },
+                                                {
+                                                    code: 62,
+                                                    name: "平凉"
+                                                },
+                                                {
+                                                    code: 63,
+                                                    name: "庆阳"
+                                                },
+                                                {
+                                                    code: 65,
+                                                    name: "天水"
+                                                },
+                                                {
+                                                    code: 66,
+                                                    name: "武威"
+                                                },
+                                                {
+                                                    code: 67,
+                                                    name: "张掖"
+                                                },
+                                                {
+                                                    code: 579,
+                                                    name: "甘南"
+                                                }]
+                                            },
+                                            {
+                                                name: "青海",
+                                                code: 357,
+                                                contains: [{
+                                                    code: 361,
+                                                    name: "海东"
+                                                },
+                                                {
+                                                    code: 366,
+                                                    name: "西宁"
+                                                },
+                                                {
+                                                    code: 367,
+                                                    name: "玉树"
+                                                },
+                                                {
+                                                    code: 592,
+                                                    name: "海北"
+                                                },
+                                                {
+                                                    code: 593,
+                                                    name: "海南"
+                                                },
+                                                {
+                                                    code: 594,
+                                                    name: "黄南"
+                                                },
+                                                {
+                                                    code: 595,
+                                                    name: "果洛"
+                                                },
+                                                {
+                                                    code: 596,
+                                                    name: "海西"
+                                                }]
+                                            },
+                                            {
+                                                name: "宁夏回族自治区",
+                                                code: 351,
+                                                contains: [{
+                                                    code: 352,
+                                                    name: "固原"
+                                                },
+                                                {
+                                                    code: 353,
+                                                    name: "石嘴山"
+                                                },
+                                                {
+                                                    code: 354,
+                                                    name: "吴忠"
+                                                },
+                                                {
+                                                    code: 356,
+                                                    name: "银川"
+                                                },
+                                                {
+                                                    code: 591,
+                                                    name: "中卫"
+                                                }]
+                                            },
+                                            {
+                                                name: "新疆",
+                                                code: 471,
+                                                contains: [{
+                                                    code: 472,
+                                                    name: "阿克苏"
+                                                },
+                                                {
+                                                    code: 473,
+                                                    name: "阿勒泰"
+                                                },
+                                                {
+                                                    code: 476,
+                                                    name: "昌吉"
+                                                },
+                                                {
+                                                    code: 477,
+                                                    name: "哈密"
+                                                },
+                                                {
+                                                    code: 478,
+                                                    name: "和田"
+                                                },
+                                                {
+                                                    code: 479,
+                                                    name: "喀什"
+                                                },
+                                                {
+                                                    code: 480,
+                                                    name: "克拉玛依"
+                                                },
+                                                {
+                                                    code: 483,
+                                                    name: "塔城"
+                                                },
+                                                {
+                                                    code: 484,
+                                                    name: "吐鲁番"
+                                                },
+                                                {
+                                                    code: 485,
+                                                    name: "乌鲁木齐"
+                                                },
+                                                {
+                                                    code: 486,
+                                                    name: "伊犁"
+                                                },
+                                                {
+                                                    code: 602,
+                                                    name: "克孜勒苏柯尔克孜"
+                                                },
+                                                {
+                                                    code: 603,
+                                                    name: "博尔塔拉"
+                                                },
+                                                {
+                                                    code: 604,
+                                                    name: "巴音郭楞"
+                                                },
+                                                {
+                                                    code: 625,
+                                                    name: "五家渠"
+                                                },
+                                                {
+                                                    code: 626,
+                                                    name: "阿拉尔"
+                                                }]
+                                            }]
+                                        },
+                                        {
+                                            name: "其他地区",
+                                            contains: [{
+                                                code: 578,
+                                                name: "台湾"
+                                            },
+                                            {
+                                                code: 599,
+                                                name: "香港"
+                                            },
+                                            {
+                                                name: "澳门",
+                                                code: 576
+                                            },
+                                            {
+                                                name: "国外",
+                                                code: 574
+                                            }]
+                                        }];
+                                    };// new Function(getcfService("site/get-area-code", User));
+                                    var codeList = cf_getAreaCode();
+                                    var codeNameList = {};
+                                    for (var i in codeList) {
+                                        //大地区
+                                        var contains = codeList[i].contains;
+                                        for (var j in contains) {
+                                            //省份地区
+                                            codeNameList[contains[j].name] = {
+                                                "name": contains[j].name,
+                                                "code": contains[j].code
+                                            };
+                                            //判断是够有下级城市
+                                            if (contains[j].contains) {
+                                                //地区城市
+                                                var kc = contains[j].contains;
+                                                for (var k in kc) {
+                                                    codeNameList[kc[k].name] = {
+                                                        "name": kc[k].name,
+                                                        "code": kc[k].code
+                                                    };
+                                                };
+                                            };
+                                        };
+                                    };
+
+                                    for (var i = 0; i < rptAdgroupClickList.length; i++) {
+                                        var cname = rptAdgroupClickList[i].cityname;
+                                        var pname = rptAdgroupClickList[i].provincename;
+                                        if (!cityClickList[cname]) {
+                                            var code = "不可设置";
+                                            if (codeNameList[cname]) {
+                                                code = codeNameList[cname].code;
+                                            };
+                                            cityClickList[cname] = {
+                                                "cityname": cname,
+                                                "code": code,
+                                                "provincename": pname,
+                                                "cost": parseFloat(rptAdgroupClickList[i].cost),
+                                                "click": 1,
+                                                "effect": rptAdgroupClickList[i].hasEffectData == true ? 1 : 0,
+                                                "clickRank": parseFloat((1 * 100) / clickCount).toFixed(2),
+                                                "effectvr": ((rptAdgroupClickList[i].hasEffectData == true ? 1 : 0) * 100 / 1).toFixed(2),
+                                                "avgPrice": parseFloat(rptAdgroupClickList[i].cost)
+                                            };
+                                        }
+                                        else {
+                                            cityClickList[cname].cost = cityClickList[cname].cost + parseFloat(rptAdgroupClickList[i].cost);
+                                            cityClickList[cname].click++;
+                                            if (rptAdgroupClickList[i].hasEffectData == true) cityClickList[cname].effect++;
+                                            cityClickList[cname].clickRank = parseFloat((cityClickList[cname].click * 100) / clickCount).toFixed(2);
+                                            cityClickList[cname].effectvr = (cityClickList[cname].effect * 100 / cityClickList[cname].click).toFixed(2);
+                                            cityClickList[cname].avgPrice = cityClickList[cname].cost / cityClickList[cname].click;
+                                        };
+                                    };
+                                    var bdDataTable = new Array();
+                                    for (var city in cityClickList) {
+                                        var cityData = cityClickList[city];
+                                        cityData.cost = (cityData.cost / 100).toFixed(2);
+                                        cityData.avgPrice = (cityData.avgPrice / 100).toFixed(2);
+                                        bdDataTable.push(cityData);
+                                    };
+
+                                    jQuery("#AreaCityParselist").jqGrid("clearGridData");
+                                    jQuery("#AreaCityParselist").jqGrid("setGridParam", { data: bdDataTable });
+                                    jQuery("#AreaCityParselist").trigger("reloadGrid");
+                                };// new Function(getcfService("site/get-area-city-ad-group-city-out-ui-js", User));
+                                cf_AreaCityAdGroupCityOutUI();
+                                layer.close(index);
+                            };//new Function("s", "e", "index", getcfService("site/get-area-city-parse-do-for-date-js", User));
+                            window.setTimeout(function () { cf_DoAreaCityParseForDate(s, e, index); }, 10);
+                        };
+                    };//new Function("s", "e", "title", getcfService("site/get-area-city-parse-page-init-js", User));
+                    cf_pageInitAreaCityParse(s, e, title);
+                };//new Function("s", "e", "title", getcfService("site/get-area-city-parse-window-js", User));
+                $("#bt_AreaCityParse_01").click(function () {
+                    cf_OpenAreaCityParse(0, 0, "城市数据-今日实时");
+                });
+                $("#bt_AreaCityParse_02").click(function () {
+                    cf_OpenAreaCityParse(-1, -1, "城市数据-昨日数据");
+                });
+                $("#bt_AreaCityParse_03").click(function () {
+                    cf_OpenAreaCityParse(-1, -2, "城市数据-过去2天数据");
+                });
+                $("#bt_AreaCityParse_04").click(function () {
+                    cf_OpenAreaCityParse(0, -2, "城市数据-所有点击（3天内）");
+                });
+            };//new Function(getcfService("site/get-area-city-parse-js", User));
+            cf_AreaCityParse()

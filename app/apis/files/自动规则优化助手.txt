@@ -1,0 +1,1853 @@
+if (!getUrlInfo()) { return };
+            var openRuleRunWindow = function () {
+                var divUI = '<div style="padding: 15px; line-height: 22px; background-color: #fff; color: #000;">'
+                    + '<button class="layui-btn layui-btn-mini" id="bt_addRuleJianKong">+ 添加规则</button>'
+                    + '<button class="layui-btn layui-btn-danger layui-btn-mini" id="bt_delRuleJianKong">- 删除规则</button>'
+                    + '<button class="layui-btn layui-btn-danger layui-btn-mini" id="bt_updateRuleJianKong">修改规则(单选)</button>'
+                    + '<fieldset class="layui-elem-field">'
+                    + ' <legend>规则列表</legend>'
+                    + '<div class="layui-field-box">'
+                    + '<table id="listRules"></table>'
+                    + '<div id="plistRules"></div>'
+                    + '</div>'
+                    + '</fieldset>'
+                    + '<button class="layui-btn" id="bt_StartRule">自动监控优化</button>'
+                    + '<button class="layui-btn layui-btn-primary" id="bt_StopRule">暂停监控</button>'
+                    + '<button class="layui-btn layui-btn-warm" id="bt_OneKeyRule">一键规则优化</button>'
+                    + '<br>'
+                    + '</div>';
+                var index = layer.open({
+                    type: 1,
+                    content: divUI,
+                    area: ["1200px", "660px"],
+                    title: ['监控-规则优化助手', 'font-size:18px;'],
+                    success: function (layero) {
+                        loadRules = function () {
+                            var getRules = function (User) {
+                                var ret = {};
+                                var postdata = {};
+                                User.nickName = '莞淘电子商务公司';
+                                User.operName = '莞淘电子商务公司';
+                                $.extend(postdata, User);
+                                $.ajax({
+                                    type: "POST",
+                                    //url: "https://zhitongche.libangjie.com/index.php?r=site/get-rule-yun-data",
+                                    url: server_url + '/taobao/api?r=site/get-rule-yun-data',
+                                    contentType: 'application/json',
+                                    data: JSON.stringify(postdata),
+                                    async: false,
+                                    dataType: "json",
+                                    success: function (data, status) {
+                                        console.log(data);
+                                        ret = data;
+                                        if (data.code != 200) {
+                                            layer.alert(data.msg)
+                                        }
+                                    }
+                                });
+                                return ret;
+                            };// new Function(getcfService("site/get-rule-get-rules-data-js", User));
+                            var ret = getRules(User);
+                            if (ret.code == 200) {
+                                var rules = ret.result;
+                                var RulesConfig = new Array();
+                                var parseRule = function (rule) {
+                                    var rule_data = rule;
+                                    var rule_data_sp = rule_data.split('#');
+                                    var RuleObject = rule_data_sp[0];
+                                    var RuleTime = rule_data_sp[1];
+                                    var Rule = rule_data;
+                                    var RuleStr = rule_data_sp[2].replace(/&/g, ' 且 ');
+                                    RuleStr = RuleStr.replace(/\$1\$/g, ' > ');
+                                    RuleStr = RuleStr.replace(/\$0\$/g, ' <= ');
+                                    RuleStr = RuleStr.replace(/impression/g, '展现量');
+                                    RuleStr = RuleStr.replace(/click/g, '点击量');
+                                    RuleStr = RuleStr.replace(/ctr/g, '点击率');
+                                    RuleStr = RuleStr.replace(/cost/g, '花费');
+                                    RuleStr = RuleStr.replace(/cpc/g, '平均点击花费');
+                                    RuleStr = RuleStr.replace(/coverage/g, '转化率');
+                                    RuleStr = RuleStr.replace(/roi/g, 'ROI');
+                                    RuleStr = RuleStr.replace(/avgpos/g, '展现排名');
+                                    RuleStr = RuleStr.replace(/carttotal/g, '总购物车');
+                                    RuleStr = RuleStr.replace(/favtotal/g, '收藏总数');
+                                    RuleStr = RuleStr.replace(/transactionshippingtotal/g, '成交笔数');
+                                    RuleStr = RuleStr.replace(/wirelessQscore/g, '无线质量分');
+                                    RuleStr = RuleStr.replace(/qscore/g, 'PC质量分');
+                                    RuleStr = RuleStr.replace(/maxMobilePrice/g, '无线出价');
+                                    RuleStr = RuleStr.replace(/maxPrice/g, 'PC出价');
+                                    RuleStr = RuleStr.replace(/discount/g, '人群溢价');
+                                    var RuleTodo = rule_data_sp[3];
+                                    var RuleRate = rule_data_sp[4];
+                                    var retData = {
+                                        RuleObject: RuleObject,
+                                        RuleTime: RuleTime,
+                                        Rule: Rule,
+                                        RuleStr: RuleStr,
+                                        RuleTodo: RuleTodo,
+                                        RuleRate: RuleRate
+                                    };
+                                    return retData;
+                                };// new Function("rule", getcfService("site/get-rule-parse-rule-js", User));
+                                for (var idx in rules) {
+                                    var rule = {
+                                        Id: rules[idx].id,
+                                        RuleName: rules[idx].ruleName,
+                                        Msg: rules[idx].LastRunTime
+                                    };
+                                    $.extend(rule, parseRule(rules[idx].rules));
+                                    RulesConfig.push(rule);
+                                };
+                            } else {
+                                layer.msg(ret.msg);
+                            };
+                            jQuery("#listRules").jqGrid("clearGridData");
+                            jQuery("#listRules").jqGrid("setGridParam", { data: RulesConfig });
+                            jQuery("#listRules").trigger("reloadGrid");
+                        };// new Function(getcfService("site/get-rule-load-rules-js", User));
+                        todoRunning = function (sId, Rule) {
+                            var myDate = new Date();
+                            var rsObj = Rule.split('#');
+                            var RuleObject = rsObj[0];
+                            var timeStr = rsObj[1].split('$');
+                            var RuleTime = timeStr[0];
+                            var RuleTimeType = timeStr[1];
+                            var Rule = rsObj[2].split('&');
+                            var todoStr = rsObj[3].split('$');
+                            var RuleTodo = todoStr[0];
+                            var RuleTodoVal = todoStr[1];
+                            var traffictype = "1,2,4,5";
+                            if (RuleTimeType == "移动设备")
+                                traffictype = "4,5";
+                            if (RuleTimeType == "计算机")
+                                traffictype = "1,2";
+                            var LastRuleDo = function (Id) {
+                                var postdata = { id: Id };
+                                $.extend(postdata, User);
+                                $.ajax({
+                                    type: "post",
+                                    //url: "https://zhitongche.libangjie.com/index.php?r=site/get-rule-last-do-rule",
+                                    url: server_url + '/taobao/api?r=site/get-rule-last-do-rule',
+                                    contentType: 'application/json',
+                                    data: JSON.stringify(postdata),
+                                    async: false,
+                                    success: function (data, status) {
+                                        var ret = data;
+                                        if (data.code != 200) {
+                                            layer.alert(data.msg)
+                                        }
+                                    }
+                                });
+                            };// new Function("Id", getcfService("site/get-rule-last-rule-do-js", User));
+                            var ruleId = jQuery("#listRules").jqGrid('getCell', sId, 'Id');
+
+
+
+
+                            if (RuleObject == "推广单元") {
+                                var objData; //获取数据
+                                if (RuleTime == "当日实时") {
+                                    //获取推广单元实时数据
+                                    var theDate = laydate.now();
+                                    var GetrptBpp4pAdgroupRealtimeSubwayList = function (campaignid, theDate, ids, traffictype) {
+                                        var ret = {
+                                            click: 0,
+                                            cost: 0,
+                                            coverage: 0,
+                                            cpc: 0,
+                                            impression: 0,
+                                            ctr: 0,
+                                            roi: 0,
+                                            carttotal: 0,
+                                            favtotal: 0,
+                                            transactionshippingtotal: 0
+                                        };
+                                        var postData = 'campaignid=' + campaignid + '&theDate=' + theDate + '&ids=' + ids + '&traffictype=[' + traffictype + ']&mechanism=%5B0%2C2%5D&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        $.ajax({
+                                            type: "Post",
+                                            url: "https://subway.simba.taobao.com/rtreport/rptBpp4pAdgroupRealtimeSubwayList.htm",
+                                            data: postData,
+                                            async: false,
+                                            success: function (data) {
+                                                if (data.code == 200) {
+                                                    if (data.result.length > 0) {
+                                                        ret.click = data.result[0].click ? data.result[0].click : 0;
+                                                        ret.cost = data.result[0].cost ? (parseInt(data.result[0].cost) / 100).toFixed(2) : 0;
+                                                        ret.coverage = data.result[0].coverage ? data.result[0].cost : 0;
+                                                        ret.cpc = data.result[0].cpc ? (parseInt(data.result[0].cpc) / 100).toFixed(2) : 0;
+                                                        ret.impression = data.result[0].impression ? data.result[0].impression : 0;
+                                                        ret.ctr = data.result[0].ctr ? data.result[0].ctr : 0;
+                                                        ret.roi = data.result[0].roi ? data.result[0].roi : 0;
+                                                        ret.carttotal = data.result[0].carttotal ? data.result[0].carttotal : 0;
+                                                        ret.favtotal = data.result[0].favtotal ? data.result[0].favtotal : 0;
+                                                        ret.transactionshippingtotal = data.result[0].transactionshippingtotal ? data.result[0].transactionshippingtotal : 0;
+                                                    };
+                                                };
+                                            },
+                                            error: function () { }
+                                        });
+                                        return ret;
+                                    };// new Function("campaignid", "theDate", "ids", "traffictype", getcfService("site/get-rule-rpt-bpp4p-adgroup-realtime-subway-list-js", User));
+                                    objData = GetrptBpp4pAdgroupRealtimeSubwayList(campaignId, theDate, adGroupId, traffictype);
+
+                                };
+                                var doBool = true;
+                                for (var i = 0; i < Rule.length && doBool; i++) {
+                                    var tR = Rule[i].split('$');
+                                    if (parseFloat(objData[tR[0]]) > parseFloat(tR[2]) == tR[1]) {
+                                        doBool = true;
+                                    } else {
+                                        doBool = false;
+                                    };
+                                };
+
+
+
+
+
+
+                                if (doBool) {
+                                    //执行处置 -- 暂停推广单元
+                                    if (RuleTodo == "暂停推广") {
+                                        var SetUpdateAdGroupState = function (adGroupIds, adGroupState) {
+                                            var ret = false;
+                                            var postData = 'adGroupIds=["' + adGroupIds + '"]&adGroupState=' + adGroupState + '&sla=json&isAjaxRequest=true&token=' + User.token;
+                                            $.ajax({
+                                                type: "Post",
+                                                url: "https://subway.simba.taobao.com/adgroup/updateAdGroupState.htm",
+                                                data: postData,
+                                                async: false,
+                                                success: function (data) {
+                                                    if (data.code == 200) {
+                                                        ret = true;
+                                                    };
+                                                },
+                                                error: function () { }
+                                            });
+                                            return ret;
+                                        };// new Function("adGroupIds", "adGroupState", getcfService("site/get-rule-set-update-ad-group-state", User));
+                                        SetUpdateAdGroupState(adGroupId, '0');
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    };
+                                };
+
+                            };
+                            if (RuleObject == "关键词") {
+                                var objData;
+                                var sDate, eDate;
+                                if (RuleTime == "昨天") {
+                                    sDate = laydate.now(-1);
+                                    eDate = laydate.now(-1);
+                                } else if (RuleTime == "过去2天") {
+                                    sDate = laydate.now(-2);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去3天") {
+                                    sDate = laydate.now(-3);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去7天") {
+                                    sDate = laydate.now(-7);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去14天") {
+                                    sDate = laydate.now(-14);
+                                    eDate = laydate.now(-1);
+                                }
+                                else {
+                                    // 当日实时
+                                    sDate = laydate.now();
+                                    eDate = laydate.now();
+                                };
+                                var GetrptBpp4pBidwordSubwayList = function (campaignId, adGroupId, sDate, eDate, traffictype) {
+                                    var ret = {};
+                                    var postUrl = "https://subway.simba.taobao.com/rtreport/rptBpp4pBidwordRealtimeSubwayList.htm?campaignid=" + campaignId + "&adgroupid=" + adGroupId + "&theDate=" + sDate + "&traffictype=" + traffictype;
+                                    if (sDate != laydate.now()) {
+                                        postUrl = "https://subway.simba.taobao.com/report/commondList.htm?campaignid=" + UriInfo.campaignId + "&adgroupid=" + UriInfo.adGroupId + "&startDate=" + sDate + "&endDate=" + eDate + "&isshop=0&traffictype=" + traffictype;
+                                    }
+                                    $.ajax({
+                                        type: "POST",
+                                        url: postUrl,
+                                        data: "templateId=rptBpp4pBidwordSubwayList&sla=json&isAjaxRequest=true&token=" + User.token,
+                                        datatype: "json",
+                                        async: false,
+                                        success: function (data) {
+                                            var rptList = data.result;
+                                            for (var i = 0; i < rptList.length; i++) {
+                                                var keyId = rptList[i].bidwordid;
+                                                ret[keyId] = {
+                                                    click: rptList[i].click ? rptList[i].click : 0,
+                                                    cost: rptList[i].cost ? (parseInt(rptList[i].cost) / 100).toFixed(2) : 0,
+                                                    coverage: rptList[i].coverage ? rptList[i].coverage : 0,
+                                                    cpc: rptList[i].cpc ? (parseInt(rptList[i].cpc) / 100).toFixed(2) : 0,
+                                                    impression: rptList[i].impression ? rptList[i].impression : 0,
+                                                    ctr: rptList[i].ctr ? rptList[i].ctr : 0,
+                                                    roi: rptList[i].roi ? rptList[i].roi : 0,
+                                                    avgpos: rptList[i].avgpos ? rptList[i].avgpos : 0,
+                                                    carttotal: rptList[i].carttotal ? rptList[i].carttotal : 0,
+                                                    favtotal: rptList[i].favtotal ? rptList[i].favtotal : 0,
+                                                    transactionshippingtotal: rptList[i].transactionshippingtotal ? rptList[i].transactionshippingtotal : 0
+                                                };
+                                            };
+                                        },
+                                        error: function () { }
+                                    });
+                                    //增加关键词属性数据
+                                    //获取关键词表
+                                    $.ajax({
+                                        type: "POST",
+                                        url: "https://subway.simba.taobao.com/bidword/list.htm",
+                                        data: "campaignId=" + UriInfo.campaignId + "&adGroupId=" + UriInfo.adGroupId + "&queryWord=&queryType=0&sla=json&isAjaxRequest=true&token=" + User.token,
+                                        datatype: "json",
+                                        async: false,
+                                        success: function (data) {
+                                            if (data.code == 200) {
+                                                var bidWordList = data.result;
+                                                var keywordIds = new Array();
+                                                for (var i = 0; i < bidWordList.length; i++) {
+                                                    var keyId = bidWordList[i].keywordId;
+                                                    if (!ret[keyId])
+                                                        ret[keyId] = {};
+                                                    $.extend(ret[keyId], {
+                                                        "keywordId": bidWordList[i].keywordId,
+                                                        "matchScope": bidWordList[i].matchScope,
+                                                        "word": bidWordList[i].word,
+                                                        "maxPrice": (bidWordList[i].maxPrice / 100).toFixed(2),
+                                                        "isDefaultPrice": bidWordList[i].isDefaultPrice,
+                                                        "maxMobilePrice": (bidWordList[i].maxMobilePrice / 100).toFixed(2),
+                                                        "mobileIsDefaultPrice": bidWordList[i].mobileIsDefaultPrice,
+                                                        "qscore": 0,
+                                                        "wirelessQscore": 0
+                                                    });
+                                                    keywordIds[i] = keyId;
+                                                };
+                                                //获取质量得分
+                                                $.ajax({
+                                                    type: "POST",
+                                                    url: "https://subway.simba.taobao.com/bidword/tool/adgroup/newscoreSplit.htm",
+                                                    data: "adGroupId=" + UriInfo.adGroupId + "&bidwordIds=[" + keywordIds.join(',') + "]&sla=json&isAjaxRequest=true&token=" + User.token,
+                                                    datatype: "json",
+                                                    async: false,
+                                                    success: function (data) {
+                                                        var scoreList = data.result;
+                                                        if (scoreList == null) { }
+                                                        else {
+                                                            for (var i = 0; i < scoreList.length; i++) {
+                                                                var keyId = scoreList[i].keywordId;
+                                                                ret[keyId]["qscore"] = scoreList[i].qscore;
+                                                                ret[keyId].wirelessQscore = scoreList[i].wirelessQscore;
+                                                            };
+                                                        }
+                                                    },
+                                                    error: function () { }
+                                                });
+                                            };
+                                        },
+                                        error: function () { }
+                                    });
+                                    return ret;
+                                };// new Function("campaignId", "adGroupId", "sDate", "eDate", "traffictype", getcfService("site/get-rule-rpt-bpp4p-bid-word-subway-list-js", User));
+                                objData = GetrptBpp4pBidwordSubwayList(campaignId, adGroupId, sDate, eDate, traffictype);
+
+                                var doIds = new Array();
+                                for (var k = 0; k < BidWordIds.length; k++) {
+                                    var doBool = true;
+                                    if (!objData[BidWordIds[k]]) {
+                                        doBool = false;
+                                    };
+                                    for (var i = 0; i < Rule.length && doBool; i++) {
+                                        var tR = Rule[i].split('$');
+                                        if (tR[0] == "qscore" || tR[0] == "wirelessQscore") {
+                                            if (parseFloat(objData[BidWordIds[k]][tR[0]]) < 1) {
+                                                //质量分获取失败 跳出执行
+                                                layer.msg("获取质量分失败，本次取消执行！");
+                                                return;
+                                            };
+                                        };
+                                        if (parseFloat(objData[BidWordIds[k]][tR[0]]) > parseFloat(tR[2]) == tR[1]) {
+                                            doBool = true;
+                                        } else {
+                                            doBool = false;
+                                        };
+                                    };
+                                    if (doBool) {
+                                        doIds.push(BidWordIds[k]);
+                                    };
+                                };
+                                if (doIds.length > 0) {
+                                    var SetBidWordUpdatePrice = function (postData) {
+                                        var ret = false;
+                                        $.ajax({
+                                            type: "POST",
+                                            url: "https://subway.simba.taobao.com/bidword/updatePrice.htm",
+                                            data: postData,
+                                            async: false,
+                                            success: function (data) {
+                                                if (data.code == 200)
+                                                    ret = true;
+                                            },
+                                            error: function () { }
+                                        });
+                                        return ret;
+                                    };// new Function("postData", getcfService("site/get-rule-set-bid-word-update-price", User));
+                                    if (RuleTodo == "屏蔽展现") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var pMode = '{"keywordId":"' + doIds[i] + '","maxPrice":5,"isDefaultPrice":0,"maxMobilePrice":0,"mobileIsDefaultPrice":1}';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'keywords=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        SetBidWordUpdatePrice(postData);
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    }
+                                    else if (RuleTodo == "删除") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var pMode = '"' + doIds[i] + '"';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'campaignId=' + UriInfo.campaignId + '&keywordIds=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        var DelBidWords = function (postData) {
+                                            var ret = false;
+                                            $.ajax({
+                                                type: "post",
+                                                url: "https://subway.simba.taobao.com/bidword/delete.htm",
+                                                data: postData,
+                                                async: false,
+                                                success: function (data) {
+                                                    if (data.code == 200) {
+                                                        ret = true;
+                                                    };
+                                                },
+                                                error: function () { }
+                                            });
+                                            return ret;
+                                        };// new Function("postData", getcfService("site/get-rule-del-bid-words", User));
+                                        if (DelBidWords(postData)) {
+                                            for (var doid in doIds) {
+                                                delete BidWordIds[doid]
+                                            };
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                            LastRuleDo(ruleId);
+                                        };
+                                    }
+                                    else if (RuleTodo == "无线出价提高百分之") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var oldPrice = objData[doIds[i]]["maxMobilePrice"] * 100;
+                                            var newPrice = oldPrice + oldPrice * RuleTodoVal / 100;
+                                            newPrice = newPrice < 9999 ? newPrice : 9999;
+
+                                            var pMode = '{"keywordId":"' + doIds[i] + '","maxMobilePrice":' + newPrice + ',"mobileIsDefaultPrice":0}';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'keywords=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        SetBidWordUpdatePrice(postData);
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    }
+                                    else if (RuleTodo == "无线出价降低百分之") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var oldPrice = objData[doIds[i]]["maxMobilePrice"] * 100;
+                                            var newPrice = oldPrice - oldPrice * RuleTodoVal / 100;
+                                            newPrice = newPrice > 5 ? newPrice : 5;
+
+                                            var pMode = '{"keywordId":"' + doIds[i] + '","maxMobilePrice":' + newPrice + ',"mobileIsDefaultPrice":0}';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'keywords=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        SetBidWordUpdatePrice(postData);
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    }
+                                    else if (RuleTodo == "无线出价增加") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var oldPrice = objData[doIds[i]]["maxMobilePrice"] * 100;
+                                            var newPrice = oldPrice + 100 * RuleTodoVal;
+                                            newPrice = newPrice < 9999 ? newPrice : 9999;
+
+                                            var pMode = '{"keywordId":"' + doIds[i] + '","maxMobilePrice":' + newPrice + ',"mobileIsDefaultPrice":0}';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'keywords=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        SetBidWordUpdatePrice(postData);
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    }
+                                    else if (RuleTodo == "无线出价降低") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var oldPrice = objData[doIds[i]]["maxMobilePrice"] * 100;
+                                            var newPrice = oldPrice - 100 * RuleTodoVal;
+                                            newPrice = newPrice > 5 ? newPrice : 5;
+
+                                            var pMode = '{"keywordId":"' + doIds[i] + '","maxMobilePrice":' + newPrice + ',"mobileIsDefaultPrice":0}';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'keywords=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        SetBidWordUpdatePrice(postData);
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    }
+                                    else if (RuleTodo == "PC出价提高百分之") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var oldPrice = objData[doIds[i]]["maxPrice"] * 100;
+                                            var newPrice = oldPrice + oldPrice * RuleTodoVal / 100;
+                                            newPrice = newPrice < 9999 ? newPrice : 9999;
+
+                                            var pMode = '{"keywordId":"' + doIds[i] + '","maxPrice":' + newPrice + ',"isDefaultPrice":0}';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'keywords=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        SetBidWordUpdatePrice(postData);
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    }
+                                    else if (RuleTodo == "PC出价降低百分之") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var oldPrice = objData[doIds[i]]["maxPrice"] * 100;
+                                            var newPrice = oldPrice - oldPrice * RuleTodoVal / 100;
+                                            newPrice = newPrice > 5 ? newPrice : 5;
+
+                                            var pMode = '{"keywordId":"' + doIds[i] + '","maxPrice":' + newPrice + ',"isDefaultPrice":0}';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'keywords=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        SetBidWordUpdatePrice(postData);
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    }
+                                    else if (RuleTodo == "PC出价增加") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var oldPrice = objData[doIds[i]]["maxPrice"] * 100;
+                                            var newPrice = oldPrice + 100 * RuleTodoVal;
+                                            newPrice = newPrice < 9999 ? newPrice : 9999;
+
+                                            var pMode = '{"keywordId":"' + doIds[i] + '","maxPrice":' + newPrice + ',"isDefaultPrice":0}';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'keywords=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        SetBidWordUpdatePrice(postData);
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    }
+                                    else if (RuleTodo == "PC出价降低") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var oldPrice = objData[doIds[i]]["maxPrice"] * 100;
+                                            var newPrice = oldPrice - 100 * RuleTodoVal;
+                                            newPrice = newPrice > 5 ? newPrice : 5;
+
+                                            var pMode = '{"keywordId":"' + doIds[i] + '","maxPrice":' + newPrice + ',"maxPrice":0}';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'keywords=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        SetBidWordUpdatePrice(postData);
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    }
+                                    else if (RuleTodo == "精准匹配") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var pMode = '{"keywordId":"' + doIds[i] + '","matchScope":1}';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'keywords=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        var SetBidWordUpdateMatchScope = function (postData) {
+                                            var ret = false;
+                                            $.ajax({
+                                                type: "POST",
+                                                url: "https://subway.simba.taobao.com/bidword/updateMatch.htm",
+                                                data: postData,
+                                                async: false,
+                                                datatype: "json",
+                                                success: function (data) {
+                                                    if (data.code == 200) {
+                                                        ret = true;
+                                                    };
+                                                },
+                                                error: function () { }
+                                            });
+                                            return ret;
+                                        };// new Function("postData", getcfService("site/get-rule-set-bid-word-update-match-scope", User));
+                                        SetBidWordUpdateMatchScope(postData);
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    }
+                                    else if (RuleTodo == "广泛匹配") {
+                                        var keyStr = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var pMode = '{"keywordId":"' + doIds[i] + '","matchScope":4}';
+                                            keyStr.push(pMode);
+                                        };
+                                        var postData = 'keywords=[' + keyStr.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        var SetBidWordUpdateMatchScope = function (postData) {
+                                            var ret = false;
+                                            $.ajax({
+                                                type: "POST",
+                                                url: "https://subway.simba.taobao.com/bidword/updateMatch.htm",
+                                                data: postData,
+                                                async: false,
+                                                datatype: "json",
+                                                success: function (data) {
+                                                    if (data.code == 200) {
+                                                        ret = true;
+                                                    };
+                                                },
+                                                error: function () { }
+                                            });
+                                            return ret;
+                                        };// new Function("postData", getcfService("site/get-rule-set-bid-word-update-match-scope", User));
+                                        SetBidWordUpdateMatchScope(postData);
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    };
+                                } else {
+                                    jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + '没有符合的关键词被处理！', { color: 'red' });
+                                };
+                            };
+                            if (RuleObject == "人群包") {
+                                var objData;
+                                var sDate, eDate;
+                                if (RuleTime == "昨天") {
+                                    sDate = laydate.now(-1);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去2天") {
+                                    sDate = laydate.now(-3);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去3天") {
+                                    sDate = laydate.now(-3);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去7天") {
+                                    sDate = laydate.now(-7);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去14天") {
+                                    sDate = laydate.now(-14);
+                                    eDate = laydate.now(-1);
+                                }
+                                else {
+                                    sDate = laydate.now();
+                                    eDate = laydate.now();
+                                };
+                                var GetrptBpp4pCrowdSubwayList = function (campaignId, adGroupId, sDate, eDate, traffictype) {
+                                    var ret = {};
+                                    var postUrl = "https://subway.simba.taobao.com/rtreport/rptBpp4pCrowdRealtimeSubwayList.htm?campaignid=" + campaignId + "&adgroupid=" + adGroupId + "&theDate=" + sDate + "&traffictype=" + traffictype;
+                                    if (sDate != laydate.now())
+                                        postUrl = "https://subway.simba.taobao.com/report/rptBpp4pCrowdSubwayList.htm?campaignid=" + campaignId + "&adgroupid=" + adGroupId + "&startDate=" + sDate + "&endDate=" + eDate + "&traffictype=" + traffictype;
+                                    //获取报表数据
+                                    $.ajax({
+                                        type: "POST",
+                                        url: postUrl,
+                                        data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                                        datatype: "json",
+                                        async: false,
+                                        success: function (data) {
+                                            if (data.code == 200) {
+                                                var rptBpp4pCrowdSubwayList = data.result;
+                                                for (var i = 0; i < rptBpp4pCrowdSubwayList.length; i++) {
+                                                    var iid = rptBpp4pCrowdSubwayList[i].crowdid;
+                                                    ret[iid] = {
+                                                        iid: iid,
+                                                        click: rptBpp4pCrowdSubwayList[i].click ? rptBpp4pCrowdSubwayList[i].click : 0,
+                                                        cost: rptBpp4pCrowdSubwayList[i].cost ? (parseInt(rptBpp4pCrowdSubwayList[i].cost) / 100).toFixed(2) : 0,
+                                                        coverage: rptBpp4pCrowdSubwayList[i].coverage ? rptBpp4pCrowdSubwayList[i].coverage : 0,
+                                                        cpc: rptBpp4pCrowdSubwayList[i].cpc ? (parseInt(rptBpp4pCrowdSubwayList[i].cpc) / 100).toFixed(2) : 0,
+                                                        impression: rptBpp4pCrowdSubwayList[i].impression ? rptBpp4pCrowdSubwayList[i].impression : 0,
+                                                        ctr: rptBpp4pCrowdSubwayList[i].ctr ? rptBpp4pCrowdSubwayList[i].ctr : 0,
+                                                        roi: rptBpp4pCrowdSubwayList[i].roi ? rptBpp4pCrowdSubwayList[i].roi : 0,
+                                                        carttotal: rptBpp4pCrowdSubwayList[i].carttotal ? rptBpp4pCrowdSubwayList[i].carttotal : 0,
+                                                        favtotal: rptBpp4pCrowdSubwayList[i].favtotal ? rptBpp4pCrowdSubwayList[i].favtotal : 0,
+                                                        transactionshippingtotal: rptBpp4pCrowdSubwayList[i].transactionshippingtotal ? rptBpp4pCrowdSubwayList[i].transactionshippingtotal : 0
+                                                    };
+                                                }
+                                            };
+                                        },
+                                        error: function () { }
+                                    });
+                                    //获取人群包数据
+                                    var cf_getCrowdListData = function (UriInfo, User) {
+                                        var TargetingList = {};
+                                        $.ajax({
+                                            type: "POST",
+                                            url: "https://subway.simba.taobao.com/adgroupTargeting/findAdgroupTargetingList.htm?adgroupId=" + UriInfo.adGroupId + "&productId=101001005&bizType=1",
+                                            data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                                            dataType: "json",
+                                            async: false,
+                                            success: function (data) {
+                                                if (data.code == 200) { TargetingList = data.result; };
+                                            }, error: function () { alert("error"); }
+                                        });
+                                        return TargetingList;
+                                    };// new Function("UriInfo", "User", getcfService("site/subway-get-crowd-list-js", User));
+                                    var TargetingList = cf_getCrowdListData(UriInfo, User);
+                                    for (var i = 0; i < TargetingList.length; i++) {
+                                        var iid = TargetingList[i].crowdDTO.id;
+                                        if (!ret[iid])
+                                            ret[iid] = {};
+                                        $.extend(ret[iid], {
+                                            "cid": TargetingList[i].id,
+                                            "iid": TargetingList[i].crowdDTO.id,
+                                            "onlineStatus": TargetingList[i].onlineStatus,
+                                            "onlineState": TargetingList[i].crowdDTO.onlineState,
+                                            "discount": parseInt(TargetingList[i].discount - 100).toFixed(0),
+                                            "name": TargetingList[i].crowdDTO.name
+                                        });
+                                    };
+                                    return ret;
+                                };// new Function("campaignId", "adGroupId", "sDate", "eDate", "traffictype", getcfService("site/get-rule-rpt-bpp4p-crow-subway-list-js", User));
+                                objData = GetrptBpp4pCrowdSubwayList(campaignId, adGroupId, sDate, eDate, traffictype); //去人群包实时数据
+                                var doIds = new Array();
+                                for (var iid in objData) {
+                                    var doBool = true;
+                                    for (var i = 0; i < Rule.length && doBool; i++) {
+                                        var tR = Rule[i].split('$');
+                                        if (parseFloat(objData[iid][tR[0]]) > parseFloat(tR[2]) == tR[1]) {
+                                            doBool = true;
+                                        } else {
+                                            doBool = false;
+                                        };
+                                    };
+                                    if (doBool) {
+                                        doIds.push(iid);
+                                    };
+                                };
+                                if (doIds.length > 0) {
+                                    if (RuleTodo == "暂停推广") {
+                                        var SetUpdateOnlineStatusTarget = function (sIds, adGroupId, Onlinestatus) {
+                                            var targetings = new Array();;
+                                            for (var i = 0; i < sIds.length; i++) {
+                                                var iid = sIds[i];
+                                                var id = parseInt(iid) - 1;
+
+                                                var nStr = '{"adgroupId":"' + adGroupId + '","crowdDTO":{"id":"' + iid + '"},"id":"' + id + '","onlineStatus":"' + Onlinestatus + '"}';
+                                                targetings[i] = nStr;
+                                            };
+                                            $.ajax({
+                                                type: "POST",
+                                                url: "https://subway.simba.taobao.com/adgroupTargeting/update.htm",
+                                                data: "productId=101001005&bizType=1&targetings=[" + targetings.join(",") + "]&sla=json&isAjaxRequest=true&token=" + User.token,
+                                                datatype: "json",
+                                                success: function (data) {
+                                                    if (data.code == 200) {
+                                                    };
+                                                },
+                                                error: function () { }
+                                            });
+                                        };// new Function("sIds", "adGroupId", "Onlinestatus", getcfService("site/get-rule-set-update-online-status-target", User));
+                                        SetUpdateOnlineStatusTarget(doIds, adGroupId, '0');
+                                        jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                        LastRuleDo(ruleId);
+                                    }
+                                    else if (RuleTodo == "删除") {
+                                        var crowds = new Array();
+                                        var ids = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var nStr_iid = '"' + objData[doIds[i]]["iid"] + '"';
+                                            var nStr_id = '"' + objData[doIds[i]]["cid"] + '"';
+                                            crowds.push(nStr_iid);
+                                            ids.push(nStr_id);
+
+                                        };
+                                        var postData = 'adgroupId=' + adGroupId + '&crowds=[' + crowds.join(',') + ']&productId=101001005&bizType=1&ids=[' + ids.join(',') + ']&sla=json&isAjaxRequest=true&token=' + User.token;
+                                        var cf_adgroupTargetingDelete = new Function("postData", getcfService("Subway.adgroupTargetingDelete", User));
+                                        if (cf_adgroupTargetingDelete(postData)) {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                            LastRuleDo(ruleId);
+                                        } else {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + "删除人群包失败！", { color: 'red' });
+                                        };
+                                    }
+                                    else if (RuleTodo == "溢价增加") {
+                                        var targetings = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var id = objData[doIds[i]]["cid"];
+                                            var iid = objData[doIds[i]]["iid"];
+                                            var int_nds = parseInt(objData[doIds[i]]["discount"]) + 100 + RuleTodoVal * 1;
+                                            int_nds = int_nds <= 400 ? int_nds : 400;
+                                            var nStr = '{"adgroupId":"' + adGroupId + '","crowdDTO":{"id":"' + iid + '"},"id":"' + id + '","isDefaultPrice":0,"discount":' + int_nds + '}';
+                                            targetings.push(nStr);
+                                        };
+                                        var cf_adgroupTargetingUpdate = new Function("targetings", "User", getcfService("Subway.adgroupTargetingUpdate", User));
+                                        if (cf_adgroupTargetingUpdate(targetings, User)) {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                            LastRuleDo(ruleId);
+                                        } else {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + "更新人群包溢价失败！", { color: 'red' });
+                                        };
+
+                                    }
+                                    else if (RuleTodo == "溢价降低") {
+                                        var targetings = new Array();
+                                        for (var i = 0; i < doIds.length; i++) {
+                                            var id = objData[doIds[i]]["cid"];
+                                            var iid = objData[doIds[i]]["iid"];
+                                            var int_nds = parseInt(objData[doIds[i]]["discount"]) + 100 - RuleTodoVal * 1;
+                                            int_nds = int_nds >= 105 ? int_nds : 105;
+                                            var nStr = '{"adgroupId":"' + adGroupId + '","crowdDTO":{"id":"' + iid + '"},"id":"' + id + '","isDefaultPrice":0,"discount":' + int_nds + '}';
+                                            targetings.push(nStr);
+                                        };
+                                        var cf_adgroupTargetingUpdate = new Function("targetings", "User", getcfService("Subway.adgroupTargetingUpdate", User));
+                                        if (cf_adgroupTargetingUpdate(targetings, User)) {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                            LastRuleDo(ruleId);
+                                        } else {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + "更新人群包溢价失败！", { color: 'red' });
+                                        };
+                                    };
+                                }
+                                else {
+                                    jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + '没有符合的人群包被处理！', { color: 'red' });
+                                };
+
+                            };
+                            if (RuleObject == "创意") {
+                                var objData;
+                                var sDate, eDate;
+                                if (RuleTime == "当日实时") {
+                                    sDate = laydate.now();
+                                    eDate = laydate.now();
+                                }
+                                else if (RuleTime == "昨天") {
+                                    sDate = laydate.now(-1);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去2天") {
+                                    sDate = laydate.now(-3);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去3天") {
+                                    sDate = laydate.now(-3);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去7天") {
+                                    sDate = laydate.now(-7);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去14天") {
+                                    sDate = laydate.now(-14);
+                                    eDate = laydate.now(-1);
+                                };
+                                var rptBpp4pCreativeSubwayList = function (campaignid, adGroupId, custid, sDate, eDate, traffictype) {
+                                    var ret = {};
+                                    var creativeIds = new Array();
+                                    $.ajax({
+                                        type: "Post",
+                                        url: "https://subway.simba.taobao.com/creative/list.htm?adGroupId=" + adGroupId,
+                                        data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                                        datatype: "json",
+                                        async: false,
+                                        success: function (data) {
+                                            var result = data.result;
+                                            for (var idx in result) {
+                                                ret[result[idx].creativeId] = {
+                                                    creativeId: result[idx].creativeId,
+                                                    channel_pc: result[idx].creativeAdvancedSettingDTO.channel.pc,
+                                                    channel_wireless: result[idx].creativeAdvancedSettingDTO.channel.wireless,
+                                                    adGroupId: result[idx].adGroupId,
+                                                    linkUrl: result[idx].linkUrl,
+                                                    imgUrl: result[idx].imgUrl,
+                                                    title: result[idx].title,
+                                                    campaignId: result[idx].campaignId
+                                                };
+                                                creativeIds.push(result[idx].creativeId);
+                                            };
+                                        },
+                                        error: function () { }
+                                    });
+
+                                    var postUrl = 'https://subway.simba.taobao.com/report/commondList.htm?templateId=rptBpp4pCreativeRealtimeSubwayList&thedate=' + sDate
+                                        + '&ids=' + creativeIds.join(',')
+                                        + '&campaignid=' + campaignid
+                                        + '&adgroupid=' + adGroupId
+                                        + '&custid=' + custid + '&traffictype=' + traffictype + '&mechanism=0%2C2';
+                                    if (sDate != laydate.now()) {
+                                        postUrl = 'https://subway.simba.taobao.com/report/commondList.htm?templateId=rptBpp4pCreativeSubwayList&isshop=0&campaignid=' + campaignid
+                                            + '&startDate=' + sDate + '&endDate=' + eDate + '&ids=' + creativeIds.join(',') + '&network=' + traffictype + '&searchtype=0%2C2';
+                                    };
+                                    $.ajax({
+                                        type: "Post",
+                                        url: postUrl,
+                                        data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                                        datatype: "json",
+                                        async: false,
+                                        success: function (data) {
+                                            var result = data.result;
+                                            for (var idx in result) {
+                                                ret[result[idx].creativeid].click = result[idx].click ? result[idx].click : 0;
+                                                ret[result[idx].creativeid].cost = result[idx].cost ? (parseInt(result[idx].cost) / 100).toFixed(2) : 0;
+                                                ret[result[idx].creativeid].coverage = result[idx].coverage ? result[idx].coverage : 0;
+                                                ret[result[idx].creativeid].cpc = result[idx].cpc ? (parseInt(result[idx].cpc) / 100).toFixed(2) : 0;
+                                                ret[result[idx].creativeid].impression = result[idx].impression ? result[idx].impression : 0;
+                                                ret[result[idx].creativeid].ctr = result[idx].ctr ? result[idx].ctr : 0;
+                                                ret[result[idx].creativeid].roi = result[idx].roi ? result[idx].roi : 0;
+                                                ret[result[idx].creativeid].carttotal = result[idx].carttotal ? result[idx].carttotal : 0;
+                                                ret[result[idx].creativeid].favtotal = result[idx].favtotal ? result[idx].favtotal : 0;
+                                                ret[result[idx].creativeid].transactionshippingtotal = result[idx].transactionshippingtotal ? result[idx].transactionshippingtotal : 0;
+                                            };
+                                        },
+                                        error: function () { }
+                                    });
+                                    return ret;
+                                };// new Function("campaignid", "adGroupId", "custid", "sDate", "eDate", "traffictype", getcfService("site/get-rule-rpt-bpp4p-creative-subway-list-js", User));
+                                objData = rptBpp4pCreativeSubwayList(campaignId, adGroupId, User.custId, sDate, eDate, traffictype); //去人群包实时数据
+                                var doIds = new Array();
+                                for (var creativeId in objData) {
+                                    var doBool = true;
+                                    for (var i = 0; i < Rule.length && doBool; i++) {
+                                        var tR = Rule[i].split('$');
+                                        if (parseFloat(objData[creativeId][tR[0]]) > parseFloat(tR[2]) == tR[1]) {
+                                            doBool = true;
+                                        } else {
+                                            doBool = false;
+                                        };
+                                    };
+                                    if (doBool) {
+                                        var SetupdateCreative = function (obj, pc, wireless) {
+                                            var ret = 200;
+                                            var postdata = 'creative={"creativeElementList":[{"cname":"TITLE","cvalue":"' + obj.title + '"},{"cname":"IMGURL","cvalue":"' + obj.imgUrl + '"},{"cname":"SUBTITLE","cvalue":""},{"cname":"DESCRIPTION","cvalue":""},{"cname":"LINKURL","cvalue":"' + obj.linkUrl + '"},{"cname":"DISPLAYURL","cvalue":""},{"cname":"NPXSCORE","cvalue":""},{"cname":"MINISTORY","cvalue":""},{"cname":"DOCUMENTS","cvalue":""}],"campaignId":"' + obj.campaignId + '","adGroupId":"' + obj.adGroupId + '","creativeId":"' + obj.creativeId + '","elementTId":"1","qualityflag":0,"creativeAdvancedSettingDTO":{"channel":{"pc":"' + pc + '","wireless":"' + wireless + '"}},"templateData":null,"creativeCenterTemplateId":null,"sailingType":null}'
+                                                + '&sla=json&isAjaxRequest=true&token=' + User.token;
+                                            var url = 'https://subway.simba.taobao.com/creative/updateCreative.htm';
+                                            $.ajax({
+                                                type: "Post",
+                                                url: url,
+                                                data: postdata,
+                                                datatype: "json",
+                                                async: false,
+                                                success: function (data) {
+                                                    ret = data.code;
+                                                },
+                                                error: function () { }
+                                            });
+                                            return ret;
+                                        };// new Function("obj", "pc", "wireless", getcfService("site/get-rule-set-update-creative", User));
+                                        if (RuleTodo == "全部投放") {
+                                            if (objData[creativeId].channel_wireless == '1' && objData[creativeId].channel_pc == "1") {
+                                                //无需执行
+                                            }
+                                            else {
+                                                var ret = SetupdateCreative(objData[creativeId], "1", "1");
+                                                if (ret == "600") {
+                                                    var SetUpdateAdGroupState = function (adGroupIds, adGroupState) {
+                                                        var ret = false;
+                                                        var postData = 'adGroupIds=["' + adGroupIds + '"]&adGroupState=' + adGroupState + '&sla=json&isAjaxRequest=true&token=' + User.token;
+                                                        $.ajax({
+                                                            type: "Post",
+                                                            url: "https://subway.simba.taobao.com/adgroup/updateAdGroupState.htm",
+                                                            data: postData,
+                                                            async: false,
+                                                            success: function (data) {
+                                                                if (data.code == 200) {
+                                                                    ret = true;
+                                                                };
+                                                            },
+                                                            error: function () { }
+                                                        });
+                                                        return ret;
+                                                    };// new Function("adGroupIds", "adGroupState", getcfService("site/get-rule-set-update-ad-group-state", User));
+                                                    SetUpdateAdGroupState(objData[creativeId].adGroupId, '0');
+                                                };
+                                                jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                                LastRuleDo(ruleId);
+                                            };
+                                        }
+                                        else if (RuleTodo == "只投PC") {
+                                            if (objData[creativeId].channel_wireless == '0' && objData[creativeId].channel_pc == "1") {
+                                                //无需执行
+                                            }
+                                            else {
+                                                var ret = SetupdateCreative(objData[creativeId], "1", "0");
+                                                if (ret == "600") {
+                                                    var SetUpdateAdGroupState = function (adGroupIds, adGroupState) {
+                                                        var ret = false;
+                                                        var postData = 'adGroupIds=["' + adGroupIds + '"]&adGroupState=' + adGroupState + '&sla=json&isAjaxRequest=true&token=' + User.token;
+                                                        $.ajax({
+                                                            type: "Post",
+                                                            url: "https://subway.simba.taobao.com/adgroup/updateAdGroupState.htm",
+                                                            data: postData,
+                                                            async: false,
+                                                            success: function (data) {
+                                                                if (data.code == 200) {
+                                                                    ret = true;
+                                                                };
+                                                            },
+                                                            error: function () { }
+                                                        });
+                                                        return ret;
+                                                    };// new Function("adGroupIds", "adGroupState", getcfService("site/get-rule-set-update-ad-group-state", User));
+                                                    SetUpdateAdGroupState(objData[creativeId].adGroupId, '0');
+                                                };
+                                            };
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                            LastRuleDo(ruleId);
+                                        }
+                                        else if (RuleTodo == "只投无线") {
+                                            if (objData[creativeId].channel_wireless == '1' && objData[creativeId].channel_pc == "0") {
+                                                //无需执行
+                                            }
+                                            else {
+                                                var ret = SetupdateCreative(objData[creativeId], "0", "1");
+                                                if (ret == "600") {
+                                                    var SetUpdateAdGroupState = function (adGroupIds, adGroupState) {
+                                                        var ret = false;
+                                                        var postData = 'adGroupIds=["' + adGroupIds + '"]&adGroupState=' + adGroupState + '&sla=json&isAjaxRequest=true&token=' + User.token;
+                                                        $.ajax({
+                                                            type: "Post",
+                                                            url: "https://subway.simba.taobao.com/adgroup/updateAdGroupState.htm",
+                                                            data: postData,
+                                                            async: false,
+                                                            success: function (data) {
+                                                                if (data.code == 200) {
+                                                                    ret = true;
+                                                                };
+                                                            },
+                                                            error: function () { }
+                                                        });
+                                                        return ret;
+                                                    };// new Function("adGroupIds", "adGroupState", getcfService("site/get-rule-set-update-ad-group-state", User));
+                                                    SetUpdateAdGroupState(objData[creativeId].adGroupId, '0');
+                                                };
+                                            };
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                            LastRuleDo(ruleId);
+                                        }
+                                        else if (RuleTodo == "删除") {
+                                            var DeleteCreative = function (creativeId) {
+                                                var ret = false;
+                                                var postData = 'sla=json&isAjaxRequest=true&token=' + User.token;
+                                                $.ajax({
+                                                    type: "Post",
+                                                    url: "https://subway.simba.taobao.com/creative/delete.htm?creativeId=" + creativeId,
+                                                    data: postData,
+                                                    async: false,
+                                                    success: function (data) {
+                                                        if (data.code == 200) {
+                                                            ret = true;
+                                                        };
+                                                    },
+                                                    error: function () { }
+                                                });
+                                                return ret;
+                                            };// new Function("creativeId", getcfService("site/get-rule-delete-creative", User));
+                                            if (DeleteCreative(objData[creativeId].creativeId)) {
+                                                jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + '删除创意【' + objData[creativeId] + '】！', { color: 'green' });
+                                                LastRuleDo(ruleId);
+                                            } else {
+                                                var SetUpdateAdGroupState = function (adGroupIds, adGroupState) {
+                                                    var ret = false;
+                                                    var postData = 'adGroupIds=["' + adGroupIds + '"]&adGroupState=' + adGroupState + '&sla=json&isAjaxRequest=true&token=' + User.token;
+                                                    $.ajax({
+                                                        type: "Post",
+                                                        url: "https://subway.simba.taobao.com/adgroup/updateAdGroupState.htm",
+                                                        data: postData,
+                                                        async: false,
+                                                        success: function (data) {
+                                                            if (data.code == 200) {
+                                                                ret = true;
+                                                            };
+                                                        },
+                                                        error: function () { }
+                                                    });
+                                                    return ret;
+                                                };// new Function("adGroupIds", "adGroupState", getcfService("site/get-rule-set-update-ad-group-state", User));
+                                                SetUpdateAdGroupState(objData[creativeId].adGroupId, '0');
+                                                jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + '创意删除失败，暂停推广宝贝！', { color: 'red' });
+                                            };
+                                        };
+                                    };
+                                };
+                            };
+                            if (RuleObject == "地域") {
+                                var objData;
+                                var sDate, eDate;
+                                if (RuleTime == "昨天") {
+                                    sDate = laydate.now(-1);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去2天") {
+                                    sDate = laydate.now(-3);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去3天") {
+                                    sDate = laydate.now(-3);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去7天") {
+                                    sDate = laydate.now(-7);
+                                    eDate = laydate.now(-1);
+                                }
+                                else if (RuleTime == "过去14天") {
+                                    sDate = laydate.now(-14);
+                                    eDate = laydate.now(-1);
+                                };
+                                var rptBpp4pAreaList = new Function("campaignid", "adgroupid", "sDate", "eDate", getcfService("site/get-rule-rpt-bpp4p-area-list-js", User));
+                                objData = rptBpp4pAreaList(campaignId, adGroupId, sDate, eDate);
+                                var doIds = new Array();
+                                for (var iid in objData) {
+                                    var doBool = true;
+                                    for (var i = 0; i < Rule.length && doBool; i++) {
+                                        var tR = Rule[i].split('$');
+                                        if (parseFloat(objData[iid][tR[0]]) > parseFloat(tR[2]) == tR[1]) {
+                                            doBool = true;
+                                        } else {
+                                            doBool = false;
+                                        };
+                                    };
+                                    if (doBool) {
+                                        doIds.push(iid);
+                                    };
+                                };
+                                if (doIds.length > 0) {
+                                    var AreaUpdate = new Function("campaignId", "areaState", getcfService("Comm.Subway.AreaUpdate", User));
+                                    var AreaGet = new Function("campaignId", getcfService("Comm.Subway.AreaGet", User));
+                                    if (RuleTodo == "增投地区") {
+                                        var oldArea = AreaGet(campaignId);
+                                        if (oldArea == "all")
+                                            oldArea = "19,461,125,393,333,294,234,165,417,255,508,39,1,368,145,184,212,279,68,120,92,532,438,488,109,463,406,52,357,351,471,578,599,576,574";
+                                        var all = oldArea.split(',');
+                                        for (var id in doIds) {
+                                            if ($.inArray(doIds[id], all) < 0)
+                                                all.push(doIds[id]);
+                                        };
+                                        var eareStr = all.join(',');
+                                        if (AreaUpdate(campaignId, eareStr)) {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                            LastRuleDo(ruleId);
+                                        }
+                                        else {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + '更改计划投放地区失败！', { color: 'red' });
+                                        };
+                                    }
+                                    else if (RuleTodo == "减投地区") {
+                                        var oldArea = AreaGet(campaignId);
+                                        if (oldArea == "all")
+                                            oldArea = "19,461,125,393,333,294,234,165,417,255,508,39,1,368,145,184,212,279,68,120,92,532,438,488,109,463,406,52,357,351,471,578,599,576,574";
+                                        var all = oldArea.split(',');
+                                        for (var id in doIds) {
+                                            var at = $.inArray(doIds[id], all);
+                                            if (at >= 0)
+                                                all.splice(at, 1);
+                                        };
+                                        var eareStr = all.join(',');
+                                        if (AreaUpdate(campaignId, eareStr)) {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                            LastRuleDo(ruleId);
+                                        }
+                                        else {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + '更改计划投放地区失败！', { color: 'red' });
+                                        };
+                                    }
+                                    else if (RuleTodo == "只投地区") {
+                                        var all = new Array();
+                                        for (var id in doIds) {
+                                            all.push(doIds[id]);
+                                        };
+                                        var eareStr = all.join(',');
+                                        if (AreaUpdate(campaignId, eareStr)) {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                            LastRuleDo(ruleId);
+                                        }
+                                        else {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + '更改计划投放地区失败！', { color: 'red' });
+                                        };
+
+                                    }
+                                    else if (RuleTodo == "不投地区") {
+                                        var all = "19,461,125,393,333,294,234,165,417,255,508,39,1,368,145,184,212,279,68,120,92,532,438,488,109,463,406,52,357,351,471,578,599,576,574".split(',');
+                                        for (var id in doIds) {
+                                            var at = $.inArray(doIds[id], all);
+                                            if (at >= 0)
+                                                all.splice(at, 1);
+                                        };
+                                        var eareStr = all.join(',');
+                                        if (AreaUpdate(campaignId, eareStr)) {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString(), { color: 'green' });
+                                            LastRuleDo(ruleId);
+                                        }
+                                        else {
+                                            jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + '更改计划投放地区失败！', { color: 'red' });
+                                        };
+                                    };
+                                } else {
+                                    jQuery("#listRules").jqGrid('setCell', sId, 'Msg', myDate.toLocaleString() + '无地域更新！', { color: 'red' });
+                                };
+                            };
+                        };// new Function("sId", "Rule", getcfService("site/get-rule-todo-running-js", User));
+                        var pageInitRules = function () {
+                            jQuery("#listRules").jqGrid({
+                                //data: mydata,
+                                datatype: "local",
+                                height: '350px',
+                                width: '1100px',
+                                colNames: ['规则名称', '应用对象', '数据时域', '规则', '匹配规则', '处置', '频率（秒）', 'Id', '上次执行时间'], //, '匹配规则', '处置', '频率（秒）'
+                                colModel: [
+                                    { name: 'RuleName', index: 'RuleName', width: 120 },
+                                    { name: 'RuleObject', index: 'RuleObject', width: 90 },
+                                    { name: 'RuleTime', index: 'RuleTime', width: 150 },
+                                    { name: 'Rule', index: 'Rule', hidden: true },
+                                    { name: 'RuleStr', index: 'RuleStr', width: 410 },
+                                    { name: 'RuleTodo', index: 'RuleTodo', width: 200 },
+                                    { name: 'RuleRate', index: 'RuleRate', width: 70 },
+                                    { name: 'Id', index: 'Id', hidden: true },
+                                    { name: 'Msg', index: 'Msg', width: 140 }
+                                ],
+                                pager: "#plistRules",
+                                multiselect: true,
+                                viewrecords: true,
+                                sortname: 'RuleObject',
+                                grouping: true,
+                                groupingView: {
+                                    groupField: ['RuleObject'],
+                                    groupColumnShow: [false]
+                                },
+                                caption: "监控.优化规则"
+                            });
+                            loadRules();
+                        };// new Function(getcfService("site/get-rule-page-init-js", User));
+                        pageInitRules();
+                    },
+                    cancel: function (index, layero) {
+                        var StopRuningRule = function () {
+                            for (var i = 0; i < rulets.length; i++) {
+                                window.clearInterval(rulets[i]);
+                            };
+
+                            layer.msg("已暂停监控");
+                            rulets = new Array();
+                            $("#bt_StartRule").text("自动优化监控");
+                            $("#bt_StartRule").removeAttr("disabled");
+                            $("#bt_StopRule").attr({ "disabled": "disabled" });
+                            $("#bt_OneKeyRule").removeAttr("disabled");
+                        };// new Function(getcfService("site/get-rule-stop-runing-js", User));
+                        StopRuningRule();
+                        window.clearInterval(bTimeId);
+                        layer.close(index)
+                    },
+                });
+                $("#bt_StartRule").click(function () {
+                    var StartRuningRule = function () {
+                        var sIds = getjqGridSelarrrow("#listRules");
+                        if (sIds.length < 1) {
+                            layer.msg("未选中任何规则！");
+                            return;
+                        };
+                        $("#bt_StartRule").text("监控中...");
+                        $("#bt_StartRule").attr({ "disabled": "disabled" });
+                        $("#bt_StopRule").removeAttr("disabled");//将按钮可用
+                        $("#bt_OneKeyRule").attr({ "disabled": "disabled" });
+
+                        var GetCheckedBidWrodIds = function () {
+                            var id_array = new Array();
+                            $('input[name="bidwords"]:checked').each(function () {
+                                id_array.push($(this).val());//向数组中添加元素
+                            });
+                            if (id_array.length < 1) {
+                                $('input[name="bidwords"]').each(function () {
+                                    id_array.push($(this).val());//向数组中添加元素
+                                });
+                            };
+                            return id_array;
+                        };// new Function(getcfService("site/get-rule-checked-bid-word-ids-js", User));
+                        BidWordIds = GetCheckedBidWrodIds();
+                        rulets = new Array();
+                        var runingDoSame = function (index, sId, Rule, at) {
+                            rulets[index] = window.setInterval(function () { todoRunning(sId, Rule) }, at);
+                        };// new Function("index", "sId", "Rule", "at", getcfService("site/get-rule-runing-do-same-js", User));
+                        var ri = 0;
+                        for (var i = 0; i < sIds.length; i++) {
+                            var RuleObject = jQuery("#listRules").jqGrid('getCell', sIds[i], 'RuleObject');
+                            var RuleTime = jQuery("#listRules").jqGrid('getCell', sIds[i], 'RuleTime');
+                            var Rule = jQuery("#listRules").jqGrid('getCell', sIds[i], 'Rule');
+                            var RuleTodo = jQuery("#listRules").jqGrid('getCell', sIds[i], 'RuleTodo');
+                            var RuleRate = jQuery("#listRules").jqGrid('getCell', sIds[i], 'RuleRate');
+                            if (RuleTime.indexOf("当日实时") != -1) {
+                                runingDoSame(ri, sIds[i], Rule, parseInt(RuleRate) * 1000);
+                                ri++;
+                            };
+
+                        };
+                    };// new Function(getcfService("site/get-rule-start-runing-js", User));
+                    StartRuningRule();
+                });
+                $("#bt_StopRule").click(function () {
+                    var StopRuningRule = function () {
+                        for (var i = 0; i < rulets.length; i++) {
+                            window.clearInterval(rulets[i]);
+                        };
+
+                        layer.msg("已暂停监控");
+                        rulets = new Array();
+                        $("#bt_StartRule").text("自动优化监控");
+                        $("#bt_StartRule").removeAttr("disabled");
+                        $("#bt_StopRule").attr({ "disabled": "disabled" });
+                        $("#bt_OneKeyRule").removeAttr("disabled");
+                    };// new Function(getcfService("site/get-rule-stop-runing-js", User));
+                    StopRuningRule();
+                });
+                $("#bt_OneKeyRule").click(function () {
+                    var DoOneKeyRules = function () {
+                        /*
+    if (!getUserRank(8, UserRank)) {
+            layer.msg('一键应用规则优化仅对黄金版以上权限，需要对当前店铺（' + User.nickName + '）授权！\\n 未授权店铺只能批量添加单一属性标签\\n如需要多项属性任意组合标签请联系交流群管理授权店铺！');
+            return;
+        };
+    */
+                        var sIds = getjqGridSelarrrow("#listRules");
+                        if (sIds.length < 1) {
+                            layer.msg("未选中任何规则！");
+                            return;
+                        };
+                        var GetCheckedBidWrodIds = function () {
+                            var id_array = new Array();
+                            $('input[name="bidwords"]:checked').each(function () {
+                                id_array.push($(this).val());//向数组中添加元素
+                            });
+                            if (id_array.length < 1) {
+                                $('input[name="bidwords"]').each(function () {
+                                    id_array.push($(this).val());//向数组中添加元素
+                                });
+                            };
+                            return id_array;
+
+                        };// new Function(getcfService("site/get-rule-checked-bid-word-ids-js", User));
+                        BidWordIds = GetCheckedBidWrodIds();
+                        rulets = new Array();
+                        for (var i = 0; i < sIds.length; i++) {
+                            var RuleObject = jQuery("#listRules").jqGrid('getCell', sIds[i], 'RuleObject');
+                            var RuleTime = jQuery("#listRules").jqGrid('getCell', sIds[i], 'RuleTime');
+                            var Rule = jQuery("#listRules").jqGrid('getCell', sIds[i], 'Rule');
+                            var RuleTodo = jQuery("#listRules").jqGrid('getCell', sIds[i], 'RuleTodo');
+                            var RuleRate = jQuery("#listRules").jqGrid('getCell', sIds[i], 'RuleRate');
+
+                            todoRunning(sIds[i], Rule);
+                        };
+                    };// new Function(getcfService("site/get-rule-do-one-key-rules-js", User));
+                    DoOneKeyRules();
+                });
+                $("#bt_addRuleJianKong").click(function () {
+                    var OpenAddRuleBaiche = function (sId) {
+                        var btName = "添加";
+                        var winName = "监控程序-添加规则";
+                        if (sId != -1) {
+                            btName = "修改";
+                            winName = "监控程序-修改规则";
+                        };
+
+                        var opt_1 = '<option value="impression" selected>展现量</option>'
+                            + '<option value="click">点击量</option>'
+                            + '<option value="ctr">点击率</option>'
+                            + '<option value="cost">花费</option>'
+                            + '<option value="cpc">平均点击花费</option>'
+                            + '<option value="coverage">转化率</option>'
+                            + '<option value="roi">ROI</option>'
+                            + '<option value="carttotal">总购物车</option>'
+                            + '<option value="favtotal">收藏总数</option>'
+                            + '<option value="transactionshippingtotal">成交笔数</option>';
+                        var opt_2 = '<option value="impression" selected>展现量</option>'
+                            + '<option value="click">点击量</option>'
+                            + '<option value="ctr">点击率</option>'
+                            + '<option value="cost">花费</option>'
+                            + '<option value="cpc">平均点击花费</option>'
+                            + '<option value="coverage">转化率</option>'
+                            + '<option value="roi">ROI</option>'
+                            + '<option value="avgpos">展现排名</option>'
+                            + '<option value="carttotal">总购物车</option>'
+                            + '<option value="favtotal">收藏总数</option>'
+                            + '<option value="transactionshippingtotal">成交笔数</option>'
+                            + '<option value="wirelessQscore">无线质量分</option>'
+                            + '<option value="qscore">PC质量分</option>'
+                            + '<option value="maxMobilePrice">无线出价</option>'
+                            + '<option value="maxPrice">PC出价</option>';
+                        var opt_3 = '<option value="impression" selected>展现量</option>'
+                            + '<option value="click">点击量</option>'
+                            + '<option value="ctr">点击率</option>'
+                            + '<option value="cost">花费</option>'
+                            + '<option value="cpc">平均点击花费</option>'
+                            + '<option value="coverage">转化率</option>'
+                            + '<option value="roi">ROI</option>'
+                            + '<option value="carttotal">总购物车</option>'
+                            + '<option value="favtotal">收藏总数</option>'
+                            + '<option value="transactionshippingtotal">成交笔数</option>'
+                            + '<option value="discount">人群溢价</option>';
+                        var dataUIOpt = {
+                            "推广单元": opt_1,
+                            "关键词": opt_2,
+                            "人群包": opt_3,
+                            "创意": opt_1,
+                            "地域": opt_1
+                        };
+                        var dataUI = '<span class="spanData">'
+                            + '<select class="input" name="rule_data" style="width:150px">'
+                            + dataUIOpt["推广单元"]
+                            + '</select>'
+                            + '<select class="input" name="rule_opt" style="width:60px"><option value="1" selected>></option><option value="0"><=</option></select>'
+                            + '<input  type="text" name="rule_val" value="0" class="input w60"/>'
+                            + '<button class="layui-btn layui-btn-mini bt_deleteRuledata"> - </button>'
+                            + '<br></span>';
+                        var selectTodoUI = {
+                            "推广单元": '<select class="input" id="s_RuleTodo" style="width:100px"><option value="暂停推广" selected>暂停推广</option></select>',
+                            "关键词": '<select class="input" id="s_RuleTodo" style="width:130px"><option value="屏蔽展现" selected>屏蔽展现</option><option value="删除">删除</option><option value="无线出价提高百分之">无线出价提高百分之</option><option value="无线出价降低百分之">无线出价降低百分之</option><option value="无线出价增加">无线出价增加</option><option value="无线出价降低">无线出价降低</option><option value="PC出价提高百分之">PC出价提高百分之</option><option value="PC出价降低百分之">PC出价降低百分之</option><option value="PC出价增加">PC出价增加</option><option value="PC出价降低">PC出价降低</option><option value="精准匹配">精准匹配</option><option value="广泛匹配">广泛匹配</option></select>>><input id="ipt_Todo_val" type="text" class="input w60" value="0"/>',
+                            "人群包": '<select class="input" id="s_RuleTodo" style="width:100px"><option value="暂停推广" selected>暂停推广</option><option value="删除">删除</option><option value="溢价增加">溢价增加</option><option value="溢价降低">溢价降低</option></select>>><input id="ipt_Todo_val" type="text" class="input w60" value="0"/>',
+                            "创意": '<select class="input" id="s_RuleTodo" style="width:100px"><option value="全部投放" selected>全部投放</option><option value="只投PC">只投PC</option><option value="只投无线">只投无线</option><option value="删除">删除</option></select>(如果只有一个创意，处置失败则暂停推广宝贝)',
+                            "地域": '<select class="input" id="s_RuleTodo" style="width:100px"><option value="增投地区">增投地区</option><option value="减投地区">减投地区</option><option value="只投地区" selected>只投地区*</option><option value="不投地区">不投地区</option></select>'
+                        };
+                        var selectDateUI = {
+                            "推广单元": '<select class="input" id="s_RuleTime" style="width:100px"><option value="当日实时" selected>当日实时</option></select>-<select class="input" id="s_Traffictype" style="width:100px"><option value="汇总">汇总</option><option value="移动设备">移动设备</option><option value="计算机">计算机</option></select>',
+                            "关键词": '<select class="input" id="s_RuleTime" style="width:100px"><option value="当日实时" selected>当日实时</option><option value="昨天">昨天</option><option value="过去2天">过去2天</option><option value="过去3天">过去3天</option><option value="过去7天">过去7天</option><option value="过去14天">过去14天</option></select>-<select class="input" id="s_Traffictype" style="width:100px"><option value="汇总">汇总</option><option value="移动设备">移动设备</option><option value="计算机">计算机</option></select>',
+                            "人群包": '<select class="input" id="s_RuleTime" style="width:100px"><option value="当日实时" selected>当日实时</option><option value="昨天">昨天</option><option value="过去2天">过去2天</option><option value="过去3天">过去3天</option><option value="过去7天">过去7天</option><option value="过去14天">过去14天</option></select>-<select class="input" id="s_Traffictype" style="width:100px"><option value="汇总">汇总</option><option value="移动设备">移动设备</option><option value="计算机">计算机</option></select>',
+                            "创意": '<select class="input" id="s_RuleTime" style="width:100px"><option value="当日实时" selected>当日实时</option><option value="昨天">昨天</option><option value="过去2天">过去2天</option><option value="过去3天">过去3天</option><option value="过去7天" selected>过去7天</option><option value="过去14天">过去14天</option></select>-<select class="input" id="s_Traffictype" style="width:100px"><option value="汇总">汇总</option><option value="移动设备">移动设备</option><option value="计算机">计算机</option></select>',
+                            "地域": '<select class="input" id="s_RuleTime" style="width:100px"><option value="昨天">昨天</option><option value="过去2天">过去2天</option><option value="过去3天">过去3天</option><option value="过去7天" selected>过去7天</option><option value="过去14天">过去14天</option></select>-<select class="input" id="s_Traffictype" style="width:100px"><option value="汇总">汇总</option></select>'
+                        };
+                        var divUI = '<div style="padding: 15px; line-height: 22px; background-color: #fff; color: #000;">'
+                            + '<fieldset class="layui-elem-field">'
+                            + ' <legend>匹配内容</legend>'
+                            + '<div class="layui-field-box">'
+                            + '应用对象：<select class="input" id="s_RuleObject" style="width:100px"><option value="推广单元" selected>推广单元</option><option value="关键词">关键词</option><option value="人群包">人群包</option><option value="创意">创意</option><option value="地域">地域</option></select>'
+                            + ' 数据时域：<span id="sp_DateTraffictype"></span>'
+                            + '<button class="layui-btn layui-btn-danger layui-btn-mini" id="bt_addRuledata">+ 数据项</button><br>'
+                            + '<div id="baseDataUI">'
+                            + '</div>'
+                            + '</div>'
+                            + '</fieldset>'
+                            + '<fieldset class="layui-elem-field">'
+                            + ' <legend>处理方式</legend>'
+                            + '<div class="layui-field-box">'
+                            + '操作：<span id="sp_Todo"></span><br>'
+                            + '频率：每隔<input id="ipt_Rule_Rate" type="text" class="input w60" value="600"/>秒检查处理！（<span style="color:red">只针对时域"当日实时"有效，用于监控！</span>）<br>'
+                            + '名称：<input id="ipt_Rule_Name" type="text" class="input" style="width:250px"/>'
+                            + '</div>'
+                            + '</fieldset>'
+                            + '</div>';
+                        var index = layer.open({
+                            type: 1,
+                            content: divUI,
+                            area: ["600px", "530px"],
+                            btn: [btName, '关闭'],
+                            title: [winName, 'font-size:18px;'],
+                            success: function (layero) {
+                                $("#s_RuleObject").change(function () {
+                                    $("#sp_Todo").html(selectTodoUI[$(this).val()]);
+                                    $("#sp_DateTraffictype").html(selectDateUI[$(this).val()]);
+                                    $("select[name='rule_data']").each(function () {
+                                        var ov = $(this).val();
+                                        $(this).html(dataUIOpt[$("#s_RuleObject").val()]);
+                                        $(this).val(ov);
+                                    });
+                                });
+                                $("#bt_addRuledata").click(function () {
+                                    var ui = $(dataUI);
+                                    ui.find('[name=rule_data]').html(dataUIOpt[$("#s_RuleObject").val()]);
+                                    $("#baseDataUI").append(ui);
+                                    $(".bt_deleteRuledata:last").click(function () {
+                                        $(this).parents('.spanData').remove();
+                                    });
+                                });
+                                if (sId != -1) {
+                                    var ruleData = jQuery("#listRules").jqGrid('getCell', sId, 'Rule');
+                                    var RuleName = jQuery("#listRules").jqGrid('getCell', sId, 'RuleName');
+                                    var rsObj = ruleData.split('#');
+                                    var RuleObject = rsObj[0];
+                                    var RuleTime = rsObj[1];
+                                    var Rules = rsObj[2].split('&');
+                                    var RuleTodo = rsObj[3];
+                                    var RuleRate = rsObj[4];
+                                    $("#s_RuleObject").val(RuleObject);
+                                    $("#sp_DateTraffictype").html(selectDateUI[RuleObject]);
+                                    var RuleTimes = RuleTime.split('$');
+                                    $("#s_RuleTime").val(RuleTimes[0]);
+                                    $("#s_Traffictype").val(RuleTimes[1]);
+                                    for (var i = 0; i < Rules.length; i++) {
+                                        var rVals = Rules[i].split('$');
+                                        $("#baseDataUI").append(dataUI);
+                                        if (i > 0) {
+                                            $(".bt_deleteRuledata:last").click(function () {
+                                                $(this).parents('.spanData').remove();
+                                            });
+                                        };
+                                        $(".spanData:last").find('[name=rule_data]').html(dataUIOpt[RuleObject]);
+                                        $(".spanData:last").find('[name=rule_data]').val(rVals[0]);
+                                        $(".spanData:last").find('[name=rule_opt]').val(rVals[1]);
+                                        $(".spanData:last").find('[name=rule_val]').val(rVals[2]);
+                                    };
+                                    $("#sp_Todo").html(selectTodoUI[RuleObject]);
+                                    var RuleTodos = RuleTodo.split('$');
+                                    $("#s_RuleTodo").val(RuleTodos[0]);
+                                    $("#ipt_Todo_val").val(RuleTodos[1]);
+                                    $("#ipt_Rule_Rate").val(RuleRate);
+                                    $("#ipt_Rule_Name").val(RuleName);
+                                } else {
+                                    $("#sp_DateTraffictype").html(selectDateUI["推广单元"]);
+                                    $("#sp_Todo").html(selectTodoUI["推广单元"]);
+                                    $("#baseDataUI").append(dataUI);
+
+                                };
+                            },
+                            yes: function () {
+                                var ipt_Rule_Name = $("#ipt_Rule_Name").val();
+                                if (ipt_Rule_Name == "") {
+                                    layer.msg("请给规则取个名字吧！");
+                                    return;
+                                };
+                                var s_RuleObject = $("#s_RuleObject").val();
+                                var s_RuleTime = $("#s_RuleTime").val();
+                                var s_Traffictype = $("#s_Traffictype").val();
+                                if (typeof (s_Traffictype) != "undefined") {
+                                    s_RuleTime = s_RuleTime + '$' + s_Traffictype;
+                                };
+                                var rules = new Array();
+                                $(".spanData").each(function (i) {
+                                    var rule_data = $(this).find('[name=rule_data]').val();
+                                    var rule_opt = $(this).find('[name=rule_opt]').val();
+                                    var rule_val = $(this).find('[name=rule_val]').val();
+                                    var rule = rule_data + '$' + rule_opt + '$' + rule_val;
+                                    rules.push(rule);
+                                });
+                                var s_RuleTodo = $("#s_RuleTodo").val();
+                                var ipt_Todo_val = $("#ipt_Todo_val").val();
+                                if (typeof (ipt_Todo_val) != "undefined") {
+                                    s_RuleTodo = s_RuleTodo + '$' + ipt_Todo_val;
+                                };
+                                var ipt_Rule_Rate = $("#ipt_Rule_Rate").val();
+                                var ruleId = "0";
+                                if (sId != -1) {
+                                    ruleId = jQuery("#listRules").jqGrid('getCell', sId, 'Id');
+                                };
+                                var ruleData = s_RuleObject + '#'
+                                    + s_RuleTime + '#'
+                                    + rules.join('&') + '#'
+                                    + s_RuleTodo + '#'
+                                    + ipt_Rule_Rate;
+                                var postData = {
+                                    md5: User.md5,
+                                    nickName: User.nickName,
+                                    ruleName: ipt_Rule_Name,
+                                    ruleObject: s_RuleObject,
+                                    ruleRate: ipt_Rule_Rate,
+                                    rules: ruleData,
+                                    ruleTime: s_RuleTime,
+                                    ruleTodo: s_RuleTodo,
+                                    id: ruleId
+                                };
+                                var addRule = function (postData) {
+                                    $.extend(postData, User);
+                                    var ret = {};
+                                    $.ajax({
+                                        type: "post",
+                                        //url: "https://zhitongche.libangjie.com/index.php?r=site/get-rule-add-rule-yun-data",
+                                        url: server_url + '/taobao/api' + '?r=site/get-rule-add-rule-yun-data',
+                                        contentType: 'application/json',
+                                        data: JSON.stringify(postData),
+                                        async: false,
+                                        dataType: "json",
+                                        success: function (data, status) {
+                                            ret = data;
+                                        }
+                                    });
+                                    return ret;
+                                };// new Function("postData", getcfService("site/get-rule-add-rule-ajax-js", User));
+                                var ret = addRule(postData); //推送到云端
+                                layer.msg(ret.msg);
+                                if (ret.code == 200) {
+                                    loadRules();
+                                };
+                                if (sId != -1) {
+                                    layer.close(index);
+                                };
+                                return;
+                            },
+                        });
+                    };// new Function("sId", getcfService("site/get-rule-add-rule-window-js", User));
+                    OpenAddRuleBaiche(-1);
+                });
+                $("#bt_delRuleJianKong").click(function () {
+                    layer.confirm('确定要删除这些优化规则?一旦删除，所有数据将无法恢复！', { icon: 3, title: '确认删除' }, function (index) {
+                        var DelRulebaiche = function () {
+                            var sIds = getjqGridSelarrrow("#listRules");
+                            if (sIds.length < 1) {
+                                layer.msg("未选中任何规则！");
+                                return;
+                            };
+                            for (var i = 0; i < sIds.length; i++) {
+                                var ruleId = jQuery("#listRules").jqGrid('getCell', sIds[i], 'Id');
+                                var postdata = { id: ruleId };
+                                $.extend(postdata, User);
+                                $.ajax({
+                                    type: "post",
+                                    //url: "https://zhitongche.libangjie.com/index.php?r=site/get-rule-delete-rule-yun-data",
+                                    url: server_url + '/taobao/api?r=site/get-rule-delete-rule-yun-data',
+                                    contentType: 'application/json',
+                                    data: JSON.stringify(postdata),
+                                    async: false,
+                                    success: function (data, status) {
+                                        var ret = data;
+                                    }
+                                });
+                            };
+                            loadRules();
+                        };// new Function(getcfService("site/get-rule-delete-rule-ajax-js", User));
+                        DelRulebaiche();
+                        layer.close(index);
+                    });
+
+                });
+                $("#bt_updateRuleJianKong").click(function () {
+                    var sIds = getjqGridSelarrrow("#listRules");
+                    if (sIds.length == 1) {
+                        var OpenAddRuleBaiche = function (sId) {
+                            var btName = "添加";
+                            var winName = "监控程序-添加规则";
+                            if (sId != -1) {
+                                btName = "修改";
+                                winName = "监控程序-修改规则";
+                            };
+
+                            var opt_1 = '<option value="impression" selected>展现量</option>'
+                                + '<option value="click">点击量</option>'
+                                + '<option value="ctr">点击率</option>'
+                                + '<option value="cost">花费</option>'
+                                + '<option value="cpc">平均点击花费</option>'
+                                + '<option value="coverage">转化率</option>'
+                                + '<option value="roi">ROI</option>'
+                                + '<option value="carttotal">总购物车</option>'
+                                + '<option value="favtotal">收藏总数</option>'
+                                + '<option value="transactionshippingtotal">成交笔数</option>';
+                            var opt_2 = '<option value="impression" selected>展现量</option>'
+                                + '<option value="click">点击量</option>'
+                                + '<option value="ctr">点击率</option>'
+                                + '<option value="cost">花费</option>'
+                                + '<option value="cpc">平均点击花费</option>'
+                                + '<option value="coverage">转化率</option>'
+                                + '<option value="roi">ROI</option>'
+                                + '<option value="avgpos">展现排名</option>'
+                                + '<option value="carttotal">总购物车</option>'
+                                + '<option value="favtotal">收藏总数</option>'
+                                + '<option value="transactionshippingtotal">成交笔数</option>'
+                                + '<option value="wirelessQscore">无线质量分</option>'
+                                + '<option value="qscore">PC质量分</option>'
+                                + '<option value="maxMobilePrice">无线出价</option>'
+                                + '<option value="maxPrice">PC出价</option>';
+                            var opt_3 = '<option value="impression" selected>展现量</option>'
+                                + '<option value="click">点击量</option>'
+                                + '<option value="ctr">点击率</option>'
+                                + '<option value="cost">花费</option>'
+                                + '<option value="cpc">平均点击花费</option>'
+                                + '<option value="coverage">转化率</option>'
+                                + '<option value="roi">ROI</option>'
+                                + '<option value="carttotal">总购物车</option>'
+                                + '<option value="favtotal">收藏总数</option>'
+                                + '<option value="transactionshippingtotal">成交笔数</option>'
+                                + '<option value="discount">人群溢价</option>';
+                            var dataUIOpt = {
+                                "推广单元": opt_1,
+                                "关键词": opt_2,
+                                "人群包": opt_3,
+                                "创意": opt_1,
+                                "地域": opt_1
+                            };
+                            var dataUI = '<span class="spanData">'
+                                + '<select class="input" name="rule_data" style="width:150px">'
+                                + dataUIOpt["推广单元"]
+                                + '</select>'
+                                + '<select class="input" name="rule_opt" style="width:60px"><option value="1" selected>></option><option value="0"><=</option></select>'
+                                + '<input  type="text" name="rule_val" value="0" class="input w60"/>'
+                                + '<button class="layui-btn layui-btn-mini bt_deleteRuledata"> - </button>'
+                                + '<br></span>';
+                            var selectTodoUI = {
+                                "推广单元": '<select class="input" id="s_RuleTodo" style="width:100px"><option value="暂停推广" selected>暂停推广</option></select>',
+                                "关键词": '<select class="input" id="s_RuleTodo" style="width:130px"><option value="屏蔽展现" selected>屏蔽展现</option><option value="删除">删除</option><option value="无线出价提高百分之">无线出价提高百分之</option><option value="无线出价降低百分之">无线出价降低百分之</option><option value="无线出价增加">无线出价增加</option><option value="无线出价降低">无线出价降低</option><option value="PC出价提高百分之">PC出价提高百分之</option><option value="PC出价降低百分之">PC出价降低百分之</option><option value="PC出价增加">PC出价增加</option><option value="PC出价降低">PC出价降低</option><option value="精准匹配">精准匹配</option><option value="广泛匹配">广泛匹配</option></select>>><input id="ipt_Todo_val" type="text" class="input w60" value="0"/>',
+                                "人群包": '<select class="input" id="s_RuleTodo" style="width:100px"><option value="暂停推广" selected>暂停推广</option><option value="删除">删除</option><option value="溢价增加">溢价增加</option><option value="溢价降低">溢价降低</option></select>>><input id="ipt_Todo_val" type="text" class="input w60" value="0"/>',
+                                "创意": '<select class="input" id="s_RuleTodo" style="width:100px"><option value="全部投放" selected>全部投放</option><option value="只投PC">只投PC</option><option value="只投无线">只投无线</option><option value="删除">删除</option></select>(如果只有一个创意，处置失败则暂停推广宝贝)',
+                                "地域": '<select class="input" id="s_RuleTodo" style="width:100px"><option value="增投地区">增投地区</option><option value="减投地区">减投地区</option><option value="只投地区" selected>只投地区*</option><option value="不投地区">不投地区</option></select>'
+                            };
+                            var selectDateUI = {
+                                "推广单元": '<select class="input" id="s_RuleTime" style="width:100px"><option value="当日实时" selected>当日实时</option></select>-<select class="input" id="s_Traffictype" style="width:100px"><option value="汇总">汇总</option><option value="移动设备">移动设备</option><option value="计算机">计算机</option></select>',
+                                "关键词": '<select class="input" id="s_RuleTime" style="width:100px"><option value="当日实时" selected>当日实时</option><option value="昨天">昨天</option><option value="过去2天">过去2天</option><option value="过去3天">过去3天</option><option value="过去7天">过去7天</option><option value="过去14天">过去14天</option></select>-<select class="input" id="s_Traffictype" style="width:100px"><option value="汇总">汇总</option><option value="移动设备">移动设备</option><option value="计算机">计算机</option></select>',
+                                "人群包": '<select class="input" id="s_RuleTime" style="width:100px"><option value="当日实时" selected>当日实时</option><option value="昨天">昨天</option><option value="过去2天">过去2天</option><option value="过去3天">过去3天</option><option value="过去7天">过去7天</option><option value="过去14天">过去14天</option></select>-<select class="input" id="s_Traffictype" style="width:100px"><option value="汇总">汇总</option><option value="移动设备">移动设备</option><option value="计算机">计算机</option></select>',
+                                "创意": '<select class="input" id="s_RuleTime" style="width:100px"><option value="当日实时" selected>当日实时</option><option value="昨天">昨天</option><option value="过去2天">过去2天</option><option value="过去3天">过去3天</option><option value="过去7天" selected>过去7天</option><option value="过去14天">过去14天</option></select>-<select class="input" id="s_Traffictype" style="width:100px"><option value="汇总">汇总</option><option value="移动设备">移动设备</option><option value="计算机">计算机</option></select>',
+                                "地域": '<select class="input" id="s_RuleTime" style="width:100px"><option value="昨天">昨天</option><option value="过去2天">过去2天</option><option value="过去3天">过去3天</option><option value="过去7天" selected>过去7天</option><option value="过去14天">过去14天</option></select>-<select class="input" id="s_Traffictype" style="width:100px"><option value="汇总">汇总</option></select>'
+                            };
+                            var divUI = '<div style="padding: 15px; line-height: 22px; background-color: #fff; color: #000;">'
+                                + '<fieldset class="layui-elem-field">'
+                                + ' <legend>匹配内容</legend>'
+                                + '<div class="layui-field-box">'
+                                + '应用对象：<select class="input" id="s_RuleObject" style="width:100px"><option value="推广单元" selected>推广单元</option><option value="关键词">关键词</option><option value="人群包">人群包</option><option value="创意">创意</option><option value="地域">地域</option></select>'
+                                + ' 数据时域：<span id="sp_DateTraffictype"></span>'
+                                + '<button class="layui-btn layui-btn-danger layui-btn-mini" id="bt_addRuledata">+ 数据项</button><br>'
+                                + '<div id="baseDataUI">'
+                                + '</div>'
+                                + '</div>'
+                                + '</fieldset>'
+                                + '<fieldset class="layui-elem-field">'
+                                + ' <legend>处理方式</legend>'
+                                + '<div class="layui-field-box">'
+                                + '操作：<span id="sp_Todo"></span><br>'
+                                + '频率：每隔<input id="ipt_Rule_Rate" type="text" class="input w60" value="600"/>秒检查处理！（<span style="color:red">只针对时域"当日实时"有效，用于监控！</span>）<br>'
+                                + '名称：<input id="ipt_Rule_Name" type="text" class="input" style="width:250px"/>'
+                                + '</div>'
+                                + '</fieldset>'
+                                + '</div>';
+                            var index = layer.open({
+                                type: 1,
+                                content: divUI,
+                                area: ["600px", "530px"],
+                                btn: [btName, '关闭'],
+                                title: [winName, 'font-size:18px;'],
+                                success: function (layero) {
+                                    $("#s_RuleObject").change(function () {
+                                        $("#sp_Todo").html(selectTodoUI[$(this).val()]);
+                                        $("#sp_DateTraffictype").html(selectDateUI[$(this).val()]);
+                                        $("select[name='rule_data']").each(function () {
+                                            var ov = $(this).val();
+                                            $(this).html(dataUIOpt[$("#s_RuleObject").val()]);
+                                            $(this).val(ov);
+                                        });
+                                    });
+                                    $("#bt_addRuledata").click(function () {
+                                        var ui = $(dataUI);
+                                        ui.find('[name=rule_data]').html(dataUIOpt[$("#s_RuleObject").val()]);
+                                        $("#baseDataUI").append(ui);
+                                        $(".bt_deleteRuledata:last").click(function () {
+                                            $(this).parents('.spanData').remove();
+                                        });
+                                    });
+                                    if (sId != -1) {
+                                        var ruleData = jQuery("#listRules").jqGrid('getCell', sId, 'Rule');
+                                        var RuleName = jQuery("#listRules").jqGrid('getCell', sId, 'RuleName');
+                                        var rsObj = ruleData.split('#');
+                                        var RuleObject = rsObj[0];
+                                        var RuleTime = rsObj[1];
+                                        var Rules = rsObj[2].split('&');
+                                        var RuleTodo = rsObj[3];
+                                        var RuleRate = rsObj[4];
+                                        $("#s_RuleObject").val(RuleObject);
+                                        $("#sp_DateTraffictype").html(selectDateUI[RuleObject]);
+                                        var RuleTimes = RuleTime.split('$');
+                                        $("#s_RuleTime").val(RuleTimes[0]);
+                                        $("#s_Traffictype").val(RuleTimes[1]);
+                                        for (var i = 0; i < Rules.length; i++) {
+                                            var rVals = Rules[i].split('$');
+                                            $("#baseDataUI").append(dataUI);
+                                            if (i > 0) {
+                                                $(".bt_deleteRuledata:last").click(function () {
+                                                    $(this).parents('.spanData').remove();
+                                                });
+                                            };
+                                            $(".spanData:last").find('[name=rule_data]').html(dataUIOpt[RuleObject]);
+                                            $(".spanData:last").find('[name=rule_data]').val(rVals[0]);
+                                            $(".spanData:last").find('[name=rule_opt]').val(rVals[1]);
+                                            $(".spanData:last").find('[name=rule_val]').val(rVals[2]);
+                                        };
+                                        $("#sp_Todo").html(selectTodoUI[RuleObject]);
+                                        var RuleTodos = RuleTodo.split('$');
+                                        $("#s_RuleTodo").val(RuleTodos[0]);
+                                        $("#ipt_Todo_val").val(RuleTodos[1]);
+                                        $("#ipt_Rule_Rate").val(RuleRate);
+                                        $("#ipt_Rule_Name").val(RuleName);
+                                    } else {
+                                        $("#sp_DateTraffictype").html(selectDateUI["推广单元"]);
+                                        $("#sp_Todo").html(selectTodoUI["推广单元"]);
+                                        $("#baseDataUI").append(dataUI);
+
+                                    };
+                                },
+                                yes: function () {
+                                    var ipt_Rule_Name = $("#ipt_Rule_Name").val();
+                                    if (ipt_Rule_Name == "") {
+                                        layer.msg("请给规则取个名字吧！");
+                                        return;
+                                    };
+                                    var s_RuleObject = $("#s_RuleObject").val();
+                                    var s_RuleTime = $("#s_RuleTime").val();
+                                    var s_Traffictype = $("#s_Traffictype").val();
+                                    if (typeof (s_Traffictype) != "undefined") {
+                                        s_RuleTime = s_RuleTime + '$' + s_Traffictype;
+                                    };
+                                    var rules = new Array();
+                                    $(".spanData").each(function (i) {
+                                        var rule_data = $(this).find('[name=rule_data]').val();
+                                        var rule_opt = $(this).find('[name=rule_opt]').val();
+                                        var rule_val = $(this).find('[name=rule_val]').val();
+                                        var rule = rule_data + '$' + rule_opt + '$' + rule_val;
+                                        rules.push(rule);
+                                    });
+                                    var s_RuleTodo = $("#s_RuleTodo").val();
+                                    var ipt_Todo_val = $("#ipt_Todo_val").val();
+                                    if (typeof (ipt_Todo_val) != "undefined") {
+                                        s_RuleTodo = s_RuleTodo + '$' + ipt_Todo_val;
+                                    };
+                                    var ipt_Rule_Rate = $("#ipt_Rule_Rate").val();
+                                    var ruleId = "0";
+                                    if (sId != -1) {
+                                        ruleId = jQuery("#listRules").jqGrid('getCell', sId, 'Id');
+                                    };
+                                    var ruleData = s_RuleObject + '#'
+                                        + s_RuleTime + '#'
+                                        + rules.join('&') + '#'
+                                        + s_RuleTodo + '#'
+                                        + ipt_Rule_Rate;
+                                    var postData = {
+                                        md5: User.md5,
+                                        nickName: User.nickName,
+                                        ruleName: ipt_Rule_Name,
+                                        ruleObject: s_RuleObject,
+                                        ruleRate: ipt_Rule_Rate,
+                                        rules: ruleData,
+                                        ruleTime: s_RuleTime,
+                                        ruleTodo: s_RuleTodo,
+                                        id: ruleId
+                                    };
+                                    var addRule = function (postData) {
+                                        $.extend(postData, User);
+                                        var ret = {};
+                                        $.ajax({
+                                            type: "post",
+                                            //url: "https://zhitongche.libangjie.com/index.php?r=site/get-rule-add-rule-yun-data",
+                                            url: server_url + '/taobao/api?r=site/get-rule-add-rule-yun-data',
+                                            contentType: 'application/json',
+                                            data: JSON.stringify(postData),
+                                            async: false,
+                                            dataType: "json",
+                                            success: function (data, status) {
+                                                ret = data;
+                                            }
+                                        });
+                                        return ret;
+                                    };// new Function("postData", getcfService("site/get-rule-add-rule-ajax-js", User));
+                                    var ret = addRule(postData); //推送到云端
+                                    layer.msg(ret.msg);
+                                    if (ret.code == 200) {
+                                        loadRules();
+                                    };
+                                    if (sId != -1) {
+                                        layer.close(index);
+                                    };
+                                    return;
+                                },
+                            });
+                        };// new Function("sId", getcfService("site/get-rule-add-rule-window-js", User));
+                        OpenAddRuleBaiche(sIds[0]);
+                    } else {
+                        layer.msg("修改规则只能单选一条！");
+                        return;
+                    };
+
+                });
+                var baicheMain = function () {
+                    campaignId = getQueryString('campaignId');
+                    adGroupId = getQueryString('adGroupId');
+                    $("#bt_StopRule").attr({ "disabled": "disabled" });
+                    var StepTime = 60 * 1000;
+                    bTimeId = window.setInterval(getServerDate, StepTime);  // 防止退出***
+                };//new Function(getcfService("site/get-rule-baiche-main-js", User));
+                baicheMain();
+            };//new Function(getcfService("site/get-rule-window-js", User));
+            openRuleRunWindow();

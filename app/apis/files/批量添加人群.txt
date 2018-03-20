@@ -1,0 +1,94 @@
+if (!getUrlInfo()) { return };
+            var cf_batchAddCrowd = function () {
+                var MarkText = $("li.tabs-list.current:last").text().trim();
+                var templateId = '12';
+                if (MarkText == '人口属性人群') {
+                    templateId = '12';
+                } else if (MarkText == '天气人群') {
+                    templateId = '11';
+                } else if (MarkText == '自定义人群') {
+                    var next_name = $("span.btn.btn-size25.fl.current").text().trim();
+                    if (next_name == '天气属性人群') templateId = '11';
+                } else {
+                    layer.msg('<b>打个酱油!</b><br/>请先打开"人口属性人群" 或 "天气人群" Tab卡，勾选所需组合标签项，再点本按钮^_^完成批量添加！', { icon: 4 });
+                    return;
+                };
+
+                var cf_getCatID = function (adGroupId) {
+                    app.cf_getTargetTags()
+                };// new Function("adGroupId", getcfService("site/subway-get-cat-ids", User));
+                var fristCat = cf_getCatID(UriInfo.adGroupId).split(' ')[0];
+                var groupidArrs = new Array();
+                var stringArrs = new Array();
+                var tagIdArrs = new Array();
+                var tagNameArrs = new Array();
+                var i = 0;
+                $(":checked[name='crowdAddCheckbox']").each(function () {
+                    groupidArrs[i] = $(this).attr('groupid');
+                    tagIdArrs[i] = $(this).attr('tagId');
+                    tagNameArrs[i] = $(this).attr('tagName');
+                    stringArrs[i] = '{"dimId":"' + $(this).attr('dimId') + '","tagId":"' + $(this).attr('tagId') + '","tagName":"' + $(this).attr('tagName') + '","optionGroupId":"' + $(this).attr('groupid') + '"}';
+                    i++;
+                });
+                var tags = new Array();
+                var tagNames = new Array();
+                var TAs = new Array();
+                var thisGid = "";
+                var NumGid = 0;
+                var at = 0;
+                for (var i = 0; i < groupidArrs.length; i++) {
+                    if (i > 0 && groupidArrs[i] != groupidArrs[i - 1]) {
+                        NumGid = NumGid + 1;
+                        at = 0;
+                    };
+                    if (thisGid != groupidArrs[i]) {
+                        TAs[NumGid] = new Array();
+                        tagNames[NumGid] = new Array();
+                        TAs[NumGid][at] = stringArrs[i];
+                        tagNames[NumGid][at] = tagNameArrs[i];
+                        thisGid = groupidArrs[i];
+                        at++;
+                    } else {
+                        TAs[NumGid][at] = stringArrs[i];
+                        tagNames[NumGid][at] = tagNameArrs[i];
+                        at++;
+                    };
+                };
+                if (tagNames.length < 1) {
+                    layer.msg("未勾选任何人群标签！");
+                    return;
+                };
+
+                var cf_getArrZuhe = function (arr) {
+                    var sarr = [[]];
+                    for (var i = 0; i < arr.length; i++) {
+                        var tarr = []; for (var j = 0; j < sarr.length; j++)
+                            for (var k = 0; k < arr[i].length; k++)
+                                tarr.push(sarr[j].concat(arr[i][k]));
+                        sarr = tarr;
+                    };
+                    return sarr;
+                };// new Function("arr", getcfService("site/get-arr-zuhe-js", User));
+                var Names = cf_getArrZuhe(tagNames);
+
+                /*
+                if (tagNames.length > 1) {
+                    if (!getUserRank(2,UserRank)) {
+                        layer.msg('批量人群多项属性组合，需要对当前店铺（' + User.nickName + '）授权！\\n 未授权店铺只能批量添加单一属性标签\\n如需要多项属性任意组合标签请联系交流群管理授权店铺！');return;
+                    };
+                };
+                */
+
+
+                var TagsCode = cf_getArrZuhe(TAs);
+                var discount = 105;
+                if ($("input[placeholder='5-300整数']").val() != "") {
+                    discount = 100 + parseInt($("input[placeholder='5-300整数']").val());
+                };
+                for (var i = 0; i < Names.length; i++) {
+                    var getdata = 'productId=101001005&bizType=1&adgroupId=' + UriInfo.adGroupId + '&targetings=[{"crowdDTO":{"extParam":{"firstCat":"' + fristCat + '"},"templateId":' + templateId + ',"name":"' + Names[i].join(',') + '","tagList":[' + TagsCode[i].join(',') + ']},"isDefaultPrice":0,"priceMode":1,"discount":' + discount + '}]';
+                    adgroupTargetingAdd(getdata, User.token);
+                };
+                layer.msg('批量人群标签添加完成，请刷新网页！');
+            };// new Function(getcfService("site/add-batch-add-crowd-js", User));
+            cf_batchAddCrowd();

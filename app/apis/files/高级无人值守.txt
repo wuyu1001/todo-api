@@ -1,0 +1,1030 @@
+if (!getUrlInfo()) { return false };
+            var cf_openRunHeicheWindow = function () {
+                var divUIjson = {
+                    "html": `<div style=\"padding: 15px; line-height: 22px; background-color: #fff; color: #000;\">开始运行:<span id=\"jk_StartTime\"><\/span><br>\r\n  当前监控计划ID：\r\n  <input type=\"text\" class=\"input\" style=\"width:150px;\" id=\"ipt_campaignId\" \/>\r\n  --监控宝贝ID：\r\n  <input type=\"text\" class=\"input\" style=\"width:150px;\" id=\"ipt_itemId\" \/>\r\n  类目标识：\r\n  <input type=\"text\" class=\"input\" style=\"width:150px;\" id=\"ipt_CatID\" \/>\r\n  <br>\r\n  操作：\r\n  <label>\r\n    <input name=\"caozuo_heiche\" type=\"radio\" value=\"1\" checked=\"checked\" \/>\r\n    全部<\/label>\r\n  &nbsp;&nbsp;&nbsp;\r\n  <label>\r\n    <input name=\"caozuo_heiche\" type=\"radio\" value=\"2\" \/>\r\n    只关键词<\/label>\r\n  &nbsp;&nbsp;&nbsp;\r\n  <label>\r\n    <input name=\"caozuo_heiche\" type=\"radio\" value=\"3\" \/>\r\n    只创意图<\/label>\r\n  <br>\r\n  云关键词：<span id=\"lb_YunWordInfo\"><\/span> -- 云人群包：<span id=\"lb_YunRenqunInfo\"><\/span><br>\r\n  创意标题：\r\n  <input type=\"text\" class=\"input\" style=\"width:500px;\" id=\"ipt_cyTitle\" \/>\r\n  <br>\r\n  <div style=\"position:relative\">\r\n    <div style=\"position:absolute; left:0; top:0;\">创意图片：<\/div>\r\n    <div style=\" padding-left:60px;\">\r\n      1、\r\n      <input type=\"text\" class=\"input\" id=\"ipt_cyPic_1\" \/>\r\n\r\n      &nbsp;2、\r\n      <input type=\"text\" class=\"input\" id=\"ipt_cyPic_2\" \/>\r\n      &nbsp;3、\r\n      <input type=\"text\" class=\"input\" id=\"ipt_cyPic_3\" \/>\r\n      <br>\r\n      4、\r\n      <input type=\"text\" class=\"input\" id=\"ipt_cyPic_4\" \/>\r\n      &nbsp;5、\r\n      <input type=\"text\" class=\"input\" id=\"ipt_cyPic_5\" \/>\r\n   \r\n    <\/div>\r\n  <\/div>\r\n  监控条件：关键词(<b id=\"lb_jkWord\"><\/b>)当前首条出价(<b id=\"lb_jkWordFristPrice\"><\/b>)\r\n  <div style=\"display:none;\">--当首条出价高于:\r\n  <input type=\"text\" class=\"input\" style=\"width:50px;\" id=\"ipt_jkWordMaxPrice\" \/>\r\n  执行恢复宝贝！<\/div>\r\n  <br>\r\n  <label for=\"ck_IsUpdatecy\"><input type=\"checkbox\" id=\"ck_IsUpdatecy\" checked=\"true\" value=\"\"\/><b>删除前修改创意图片：<\/b><\/label>\r\n  <input type=\"text\" class=\"input\" style=\"width:500px; \" id=\"ipt_UpdatecyPic\" >\r\n  <label for=\"ck_IsWs\"><input type=\"checkbox\" id=\"ck_IsWs\" checked=\"true\" value=\"\"\/><b>使用游览器（只有操作:全部）<\/b><\/label>\r\n\r\n  <br>\r\n  每隔\r\n  <input type=\"text\" class=\"input\" style=\"width:50px;\" value=\"300\" id=\"ipt_jkWordTime\" \/>\r\n  秒检查！\r\n  <label for=\"ck_IsTime\">\r\n    <input type=\"checkbox\" id=\"ck_IsTime\" checked=\"true\" value=\"\"\/>\r\n    <b>宝贝在线时间段：<\/b><\/label>\r\n  (\r\n  <input type=\"text\" class=\"input\" style=\"width:60px;\" value=\"8:00\" id=\"ipt_jksTime\" \/>\r\n  --\r\n  <input type=\"text\" class=\"input\" style=\"width:60px;\" value=\"23:00\" id=\"ipt_jkeTime\" \/>\r\n  )<b>非时段将删除宝贝维护计划！<\/b><br>\r\n  <label for=\"ck_IsQAdd\">\r\n    <input type=\"checkbox\" id=\"ck_IsQAdd\" checked=\"true\" value=\"\"\/>\r\n    <b>极速添加--等待<\/b><\/label>\r\n  <input type=\"text\" class=\"input\" style=\"width:60px;\" value=\"3\" id=\"ipt_QWait\" \/>\r\n  秒(必须小于监控步长时间)<br>\r\n  服务信息:<span id=\"jk_LastTime\"><\/span><br>\r\n  <button class=\"layui-btn\" id=\"bt_StartJianKong\">开始监控<\/button>\r\n  <button class=\"layui-btn layui-btn-primary\" id=\"bt_StopJianKong\">暂停监控<\/button>\r\n  <button class=\"layui-btn layui-btn-primary\" id=\"bt_SaveConfigHeicheYUN\">保存配置<\/button>\r\n  <br>\r\n  恢复记录:<span id=\"lb_jkInfomsg\"><\/span><\/div>\r\n`
+                };
+                var divUI = divUIjson.html;
+
+                var index = layer.open({
+                    type: 1, content: divUI,
+                    area: ["850px", "600px"],
+                    title: ['监控程序-神车.高级无人值守', 'font-size:18px;'],
+                    success: function (layero) {
+                        var JianKongMian = function () {
+                            getBidWordFristPrice = function () {
+                                $.ajax({
+                                    type: "post",
+                                    url: "https://subway.simba.taobao.com/bidword/tool/bidword/getPriceBatchStrategy.htm",
+                                    data: 'adGroupId=' + adGroupId + '&bidwordIds=' + fristWord['keywordId'] + '&type=mobile&sla=json&isAjaxRequest=true&token=' + User.token,
+                                    async: false,
+                                    success: function (data) {
+                                        if (data.code == 200) {
+                                            var res = data.result;
+                                            fristWord['FristPrice'] = (res[0].wireless_fp_price) / 100;
+                                            $("#lb_jkWordFristPrice").text(fristWord['FristPrice']);
+                                        };
+                                    },
+                                    error: function () { }
+                                });
+                            };// new Function(getcfService("heiche-gaoji/get-heiche-bid-word-frist-price-js", User));
+                            getFristBidWord = function () {
+                                //获取关键词表
+                                $.ajax({
+                                    type: "POST",
+                                    url: "https://subway.simba.taobao.com/bidword/list.htm",
+                                    data: "campaignId=" + campaignId + "&adGroupId=" + adGroupId + "&queryWord=&queryType=0&sla=json&isAjaxRequest=true&token=" + User.token,
+                                    datatype: "json",
+                                    async: false,
+                                    success: function (data) {
+                                        if (data.code == 200) {
+                                            var bidWordList = data.result;
+                                            if (bidWordList.length > 0) {
+                                                fristWord['keywordId'] = bidWordList[0].keywordId;
+                                                fristWord['word'] = bidWordList[0].word;
+                                                $("#lb_jkWord").text(fristWord['word']);
+                                                getBidWordFristPrice();
+
+                                            };
+                                        };
+                                    },
+                                });
+                            };// new Function(getcfService("heiche-gaoji/get-heiche-first-bid-word-js", User));
+                            var myDate = new Date();
+                            campaignId = getQueryString('campaignId');
+                            adGroupId = getQueryString('adGroupId');
+                            var cf_getItemNumId = function (adgid) {
+                                var itemId = "";
+                                $.ajax({
+                                    type: "POST",
+                                    url: "https://subway.simba.taobao.com/adgroup/get.htm?adGroupId=" + adgid,
+                                    data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                                    datatype: "json",
+                                    async: false,
+                                    success: function (data) {
+                                        if (data.code == 200) { itemId = data.result.outsideItemNumId; }
+                                        else {
+                                            layer.msg(data.msg);
+                                        }
+
+                                    },
+                                    error: function () { }
+                                });
+                                return itemId;
+                            };// new Function("adgid", getcfService("comm/subway-get-item-num-id-js", User));
+                            var itemId = cf_getItemNumId(adGroupId);
+                            //var cf_getCatID=new Function("adGroupId",getcfService("Subway.getCatID",User));
+                            var cf_getCatID = function (adGroupId) {
+                                var categoryId;
+                                $.ajax({
+                                    type: "POST",
+                                    url: "https://subway.simba.taobao.com/adgroup/getAdGroupWithCategory.htm?adGroupId=" + adGroupId,
+                                    data: null,
+                                    async: false,
+                                    dataType: "json",
+                                    success: function (data) { if (data.code == 200) { categoryId = data.result.adGroupDTO.categoryId; }; },
+                                    error: function () { alert("error:getCatID"); }
+                                });
+                                return categoryId;
+
+                            };// new Function("adGroupId", getcfService("comm/subway-get-cat-ids", User));
+                            var categoryId = cf_getCatID(adGroupId);
+                            var getYunHeicheConfig = function (itemId) {
+                                var resData = {};
+                                var cf_getRsetSubway = function (itemId) {
+                                    var ret = {};
+                                    var postdata = { itemId: itemId };
+                                    $.extend(postdata, User);
+                                    $.ajax({
+                                        type: "post",
+
+                                        //url: "https://zhitongche.yiyoushi.net/index.php?r=heiche-gaoji/get-heiche-rsetsubway",
+                                        url: server_url + '/taobao/api?r=heiche-gaoji/get-heiche-rsetsubway',
+                                        //url: "https://www.chebaochajian.com/api/getrsetsubway/" + itemId,
+
+                                        contentType: 'application/json',
+                                        data: JSON.stringify(postdata),
+                                        async: false,
+                                        dataType: "json",
+                                        success: function (data, status) {
+                                            ret = data;
+                                            if (data.code != 200) {
+                                                layer.alert(data.msg)
+                                            }
+                                        }
+                                    });
+                                    return ret;
+                                };// new Function("itemId", getcfService("heiche-gaoji/get-heiche-rset-subway-js", User));
+                                var obj = cf_getRsetSubway(itemId);
+                                if (obj.code == 200) {
+                                    resData["itemId"] = obj.result.ItemId;
+                                    resData["cybt"] = obj.result.CreativeTitle;
+
+                                    resData["cytp_1"] = obj.result.CreativeImgUrl_1;
+                                    resData["cytp_2"] = obj.result.CreativeImgUrl_2;
+                                    resData["cytp_3"] = obj.result.CreativeImgUrl_3;
+                                    resData["cytp_4"] = obj.result.CreativeImgUrl_4;
+                                    resData["cytp_5"] = obj.result.CreativeImgUrl_5;
+                                    resData["cytp_UpdatecyPic"] = obj.result.CreativeImgUrl_reset;
+
+
+                                    resData["id"] = obj.result.id;
+                                    resData["maxppc"] = obj.result.MaxPrice;
+                                    resData["deletecy"] = obj.result.IsDelCreative;
+                                    resData["editTime"] = obj.result.UpdateDate;
+                                    resData["jkstep"] = obj.result.Step; resData["istime"] = obj.result.IsCheckTime;
+                                    resData["stime"] = obj.result.StartTime; resData["etime"] = obj.result.EndTime;
+                                    resData["expdate"] = obj.result.ExpDate;
+                                    resData["IsQAdd"] = obj.result.IsQAdd;
+                                    resData["QWait"] = obj.result.QWait
+                                } else if (obj.code == "300") {
+                                    resData["itemId"] = itemId; resData["cybt"] = '当前宝贝无监控值守权限，请联系管理员申请开通！';
+                                    resData["id"] = "0"
+                                };
+                                return resData;
+                            };// new Function("itemId", getcfService("heiche-gaoji/get-heiche-config-js", User));
+                            itemConfig = getYunHeicheConfig(itemId);
+
+                            $("#jk_StartTime").text(myDate.toLocaleString() + '(授权有效期:[' + itemConfig["expdate"] + '])');
+
+                            $("#ipt_campaignId").val(campaignId);
+                            $("#ipt_itemId").val(itemId); $("#ipt_CatID").val(categoryId);
+                            cf_getYunData = function (itemId) {
+                                var cf_getWordYun = function (itemId, User) {
+                                    var ret = {};
+                                    var postdata = { itemId: itemId };
+                                    $.extend(postdata, User);
+                                    $.ajax({
+                                        type: "post",
+                                        //url: "https://zhitongche.yiyoushi.net/index.php?r=heiche-gaoji/get-heiche-bid-word-yun-data",
+                                        url: server_url + '/taobao/api?r=heiche-gaoji/get-heiche-bid-word-yun-data',
+                                        contentType: 'application/json',
+                                        data: JSON.stringify(postdata),
+                                        async: false,
+                                        dataType: "json",
+                                        success: function (data, status) {
+                                            ret = data;
+                                            if (data.code != 200) {
+                                                layer.alert(data.msg)
+                                            }
+                                        }
+                                    });
+                                    return ret;
+                                };// new Function("itemId", "User", getcfService("heiche-gaoji/get-heiche-yun-bid-word-data-js", User));
+                                BDData = { 'code': 1 };
+                                BDData = cf_getWordYun(itemId, User);
+                                if (BDData['code'] == 200) {
+                                    BDData = BDData.result;
+                                    $("#lb_YunWordInfo").text("(数量【" + BDData.Count + "】，更新时间【" + BDData.UpdateDate + "】)");
+                                } else {
+                                    $("#lb_YunWordInfo").text("(数量【0】，更新时间【未知】)");
+                                    layer.alert("未备份关键词，不能操作！");
+
+                                }
+
+
+
+
+                                RQData = { 'code': 1 };
+                                var cf_getTargetYun = function (itemId, User) {
+                                    var ret = {};
+                                    var postdata = { itemId: itemId };
+                                    $.extend(postdata, User);
+                                    $.ajax({
+                                        type: "post",
+                                        //url: "https://zhitongche.yiyoushi.net/index.php?r=heiche-gaoji/get-heiche-crowd-yun-data",
+                                        url: server_url + '/taobao/api?r=heiche-gaoji/get-heiche-crowd-yun-data',
+                                        contentType: 'application/json',
+                                        data: JSON.stringify(postdata),
+                                        async: false,
+                                        dataType: "json",
+                                        success: function (data, status) {
+                                            ret = data;
+                                            if (data.code != 200) {
+                                                layer.alert(data.msg)
+                                            }
+                                        }
+                                    });
+                                    return ret;
+                                };// new Function("itemId", "User", getcfService("heiche-gaoji/get-heiche-yun-crowd-data-js", User));
+                                RQData = cf_getTargetYun(itemId, User);
+                                if (RQData['code'] == 200) {
+                                    RQData = RQData.result;
+                                    $("#lb_YunRenqunInfo").text("(数量【" + RQData.Count + "】，更新时间【" + RQData.UpdateDate + "】)");
+                                } else {
+                                    $("#lb_YunRenqunInfo").text("(数量【0】，更新时间【未知】)");
+                                    layer.alert("未备份人群，不能操作！");
+
+                                }
+                            };// new Function("itemId", getcfService("heiche-gaoji/get-heiche-yun-data-js", User));
+                            cf_getYunData(itemId);
+                            //var cf_getTargetTags = new Function(getcfService("heiche-gaoji/get-heiche-yun-target-tags-js", User));
+                            TargetTags = app.cf_getTargetTags(); getFristBidWord(); $("#bt_StopJianKong").attr({ "disabled": "disabled" });
+                            if (itemConfig["id"] == "0") {
+                                $("#bt_StopJianKong").attr({ "disabled": "disabled" });
+                                $("#bt_StartJianKong").attr({ "disabled": "disabled" });
+                                $("#ipt_cyTitle").val(itemConfig["cybt"])
+                            } else {
+
+                                $("#ipt_cyTitle").val(itemConfig["cybt"]);
+
+                                $("#ipt_cyPic_1").val(itemConfig["cytp_1"]);
+                                $("#ipt_cyPic_2").val(itemConfig["cytp_2"]);
+                                $("#ipt_cyPic_3").val(itemConfig["cytp_3"]);
+                                $("#ipt_cyPic_4").val(itemConfig["cytp_4"]);
+                                $("#ipt_cyPic_5").val(itemConfig["cytp_5"]);
+                                $("#ipt_UpdatecyPic").val(itemConfig["cytp_UpdatecyPic"]);
+
+
+
+                                $("#ipt_jkWordMaxPrice").val(itemConfig["maxppc"]);
+                                if (itemConfig["deletecy"] == "1") { $("#ck_IsUpdatecy").attr("checked", true) } else { $("#ck_IsUpdatecy").attr("checked", false) };
+                                $("#ipt_jkWordTime").val(itemConfig["jkstep"]);
+                                if (itemConfig["istime"] == "1") { $("#ck_IsTime").attr("checked", true) } else { $("#ck_IsTime").attr("checked", false) };
+                                $("#ipt_jksTime").val(itemConfig["stime"]); $("#ipt_jkeTime").val(itemConfig["etime"]);
+                                if (itemConfig["IsQAdd"] == "1") { $("#ck_IsQAdd").attr("checked", true) } else { $("#ck_IsQAdd").attr("checked", false) };
+                                $("#ipt_QWait").val(itemConfig["QWait"])
+                            }
+                            var StepTime = 60 * 1000;
+                            var jiankongDoNew = function () {
+                                /*监控执行程序*/
+
+
+                                var myDate = new Date();
+                                //防退出
+                                getServerDate();
+                                //监控推广
+                                if (!IsRuning) { return false; }
+
+                                if (IsOnlineTime()) {
+                                    if (IsHave()) {
+                                        //推广单元存在
+                                        if (fristWord['keywordId'] == "") {
+                                            getFristBidWord();
+                                        };
+                                        if (!fristWord['FristPrice'] || fristWord['FristPrice'] == "-0.01") {
+                                            getBidWordFristPrice();
+                                        };
+                                    } else {
+                                        //推广单元不存在 添加推广
+                                        saveItemSmartSolution();
+                                        //刷新推广单元ID
+                                        //获取首条出价
+                                        window.setTimeout(function () { IsHave(); getFristBidWord(); }, 5000);
+
+                                    };
+                                } else {
+                                    //不在推广时段 删除维护
+                                    if (IsHave()) {
+                                        //====删除宝贝======
+                                        IsUpdateCy = $('#ck_IsUpdatecy').prop('checked');
+                                        if (IsUpdateCy) {
+                                            updateCreative(adGroupId);
+                                            var dateStart = new Date(),
+                                                dateEnd;
+                                            while (((dateEnd = new Date()) - dateStart) <= 5000) {
+                                            };
+                                        };
+                                        deleteAdGroup(adGroupId);
+                                    };
+                                };
+
+                                $("#jk_LastTime").text(myDate.toLocaleString() + ' NewAdGroupId:' + adGroupId);
+                            };// new Function(getcfService("heiche-gaoji/get-heiche-jian-kong-do-new-js", User));
+                            jiankongDoNew();
+                            timeId = window.setInterval(jiankongDoNew, StepTime);
+                        };// new Function(getcfService("heiche-gaoji/get-heiche-jian-kong-mian-js", User)); JianKongMian()
+                    },
+                    cancel: function (index, layero) {
+                        var jiankongStop = function () {
+                            layer.msg("停止监控！");
+                            $("#bt_StartJianKong").text("开始监控");
+                            $("#bt_StartJianKong").removeAttr("disabled");//将按钮可用
+                            $("#bt_StopJianKong").attr({ "disabled": "disabled" });
+                            IsRuning = false;
+                            window.clearInterval(timeId2);
+                        };// new Function(getcfService("heiche-gaoji/get-heiche-stop-js", User));
+                        jiankongStop(); layer.close(index)
+                    }
+                });
+                $("#bt_StartJianKong").click(function () {
+                    var jiankongAdgroup = function () {
+                        if (Version == 'test') {
+                            jiankongAdgroup();
+                            return;
+                        };
+                        var itemConfig = new Object('id', '1');
+                        if (itemConfig["id"] == "0") {
+                            layer.msg('无人值守功能仅对指定宝贝开通！<br/>需要对当前宝贝ID（' + itemConfig["itemId"] + '）授权！<br/> 请联系交流群管理授权！');
+                            return;
+                        };
+                        IsOnlineTime = function () {
+                            var isonline = true;
+                            var obj = document.getElementById("ck_IsTime");//
+                            if (obj.checked) { isonline = false; } else { isonline = true; };
+                            if (!isonline) {
+                                var st = $("#ipt_jksTime").val();
+                                var et = $("#ipt_jkeTime").val();
+                                var ar = [st, et];
+                                isonline = checkTime(ar);
+                            };
+                            return isonline;
+                        };// new Function(getcfService("heiche-gaoji/get-heiche-is-online-time-js", User));
+                        IsHave = function () {
+                            var haveing = false;
+                            var cam_id = $("#ipt_campaignId").val();
+                            var item_id = $("#ipt_itemId").val();
+                            var url = 'https://subway.simba.taobao.com/adgroup/adGroupList.htm?queryVO={"pageNumber":1,"pageSize":"200","queryTitle":"","queryState":"","campaignId":"' + cam_id + '"}';
+                            var postdata = "sla=json&isAjaxRequest=true&token=" + User.token;
+                            $.ajax({
+                                type: 'POST',
+                                url: url,
+                                data: postdata,
+                                async: false,
+                                success: function (data) {
+                                    var items = data.result.items;
+                                    for (var idx in items) {
+                                        if (items[idx].adGroupDTO.outsideItemNumId == item_id) {
+                                            haveing = true;
+                                            itemPicUrl = items[idx].adGroupDTO.imgUrl;
+                                            adGroupId = items[idx].adGroupDTO.adGroupId;
+                                        };
+                                    };
+                                },
+                                error: function () { }
+                            });
+                            return haveing;
+                        };// new Function(getcfService("heiche-gaoji/get-heiche-is-have-js", User));
+                        saveItemSmartSolution = function () {
+                            /*添加创意*/
+                            var cam_id = $("#ipt_campaignId").val();
+                            var item_id = $("#ipt_itemId").val();
+                            var cat_id = $("#ipt_CatID").val();
+
+
+                            var cyTile = $("#ipt_cyTitle").val();
+                            //创意图片
+                            var arr_pic = [];
+                            for (var i = 1; i <= 5; i++) {
+                                if ($.trim($('#ipt_cyPic_' + i).val()) == '') { continue; }
+                                arr_pic.push($.trim($('#ipt_cyPic_' + i).val()));
+                            }
+
+
+                            creativePicNum = creativePicNum + 1 > arr_pic.length ? 0 : creativePicNum;
+                            cyPic = arr_pic[creativePicNum];
+                            ++creativePicNum;
+
+
+                            if (arr_pic.length < 1) {
+                                layer.alert('请设置创意图');
+                                return false;
+                            }
+
+
+
+                            cf_getYunData(item_id);
+                            if (BDData['code'] == 1) {
+                                layer.alert('关键词备份数据获取失败，不能操作');
+                                return false;
+                            }
+                            if (RQData['code'] == 1) {
+                                layer.alert('人群备份数据获取失败，不能操作');
+                                return false;
+                            }
+
+
+                            var addWords = BDData.BidWordData;
+                            if (addWords != '' && addWords != null) { addWords = addWords.replace(/maxPrice/g, 'bidPrice').replace(/maxMobilePrice/g, 'mobileBidPrice'); }
+
+
+                            if (addWords == '' || addWords == null) {
+                                layer.alert('关键词没有备份，不能操作');
+                                return;
+                            }
+
+                            var addCrowds = '[]';
+                            if (typeof RQData.CrowdData == 'undefined' || typeof RQData.CrowdData == undefined || RQData.CrowdData == '') {
+                                addCrowds = '[]';
+                            } else {
+                                var targetArr = RQData.CrowdData.split("#");
+                                var targetings = new Array();
+                                var e = 0;
+                                for (var i = 0; i < targetArr.length; i++) {
+                                    var tag = targetArr[i].split('$');
+                                    var tagName = tag[0].split(',');
+                                    var discount = tag[1];
+                                    var onlineStatus = tag[2];
+                                    var tagList = new Array();
+                                    var templateId;
+                                    if (typeof TargetTags[tagName[0]] == 'undefined' || TargetTags[tagName[0]] == '' || TargetTags[tagName[0]] == null) { continue; }
+
+                                    for (var j = 0; j < tagName.length; j++) {
+                                        tagList.push(TargetTags[tagName[j]].tagCode);
+                                        templateId = TargetTags[tagName[j]].templateId;
+                                    };
+                                    targetings.push('{"crowdDTO":{"templateId":"' + templateId
+                                        + '","name":"' + tag[0]
+                                        + '","tagList":[' + tagList.join(',') + ']}'
+                                        + ',"discount":' + discount + ',"targetingType":1}');
+                                }
+                                addCrowds = '[' + targetings.join(',') + ']';
+                            }
+
+
+
+
+                            cyPic = cyPic.replace(/https:/, '');
+                            cyPic = cyPic.replace(/http:/, '');
+                            cyPic = cyPic.replace(/\/\/img./, '//gd1.');
+
+                            /* var postData = 'itemADGroupVO={"campaignId":"' + cam_id + '","itemNumId":"' + item_id + '","sortId":"' + cat_id + '","creativeElementList":[{"cname":"TITLE","cvalue":"' + cyTile + '"},{"cname":"IMGURL","cvalue":"' + cyPic + '"},{"cname":"SUBTITLE","cvalue":""},{"cname":"DESCRIPTION","cvalue":""},{"cname":"LINKURL","cvalue":"http://item.taobao.com/item.htm?id=' + item_id + '"},{"cname":"DISPLAYURL","cvalue":""},{"cname":"NPXSCORE","cvalue":""},{"cname":"MINISTORY","cvalue":""},{"cname":"DOCUMENTS","cvalue":""}],"elementTId":"1","creativeImgUrl":"' + cyPic + '","creativeTitle":"' + cyTile + '","qualityflag":0,"defaultPrice":"10","autoMatchState":1,"nonSearchState":1,"logsBidwordStr":""}'
+                                 + '&addWords=' + addWords
+                                 + (addCrowds == '' ? '' : '&addCrowds=' + addCrowds)
+                                 + '&analyseTraceId=ac1dc00514974263452964085e'
+                                 + '&sla=json&isAjaxRequest=true&token=' + User.token; //无效的赋值 */
+                            var postData = {
+                                itemADGroupVO: '{"campaignId":"' + cam_id + '","itemNumId":"' + item_id + '","sortId":"' + cat_id + '","creativeElementList":[{"cname":"TITLE","cvalue":"' + cyTile + '"},{"cname":"IMGURL","cvalue":"' + cyPic + '"},{"cname":"SUBTITLE","cvalue":""},{"cname":"DESCRIPTION","cvalue":""},{"cname":"LINKURL","cvalue":"http://item.taobao.com/item.htm?id=' + item_id + '"},{"cname":"DISPLAYURL","cvalue":""},{"cname":"NPXSCORE","cvalue":""},{"cname":"MINISTORY","cvalue":""},{"cname":"DOCUMENTS","cvalue":""}],"elementTId":"1","creativeImgUrl":"' + cyPic + '","creativeTitle":"' + cyTile + '","qualityflag":0,"defaultPrice":"10","autoMatchState":1,"nonSearchState":1,"logsBidwordStr":""}',
+                                addWords: addWords,
+                                analyseTraceId: 'ac1dc00514974263452964085e',
+                                sla: 'json',
+                                isAjaxRequest: true,
+                                token: User.token
+                            };
+                            if (addCrowds != '') {
+                                postData['addCrowds'] = addCrowds
+                            }
+                            $.ajax({
+                                type: "POST",
+                                url: "https://subway.simba.taobao.com/smartsolution2/saveItemSmartSolution.htm",
+                                data: postData,
+                                async: false,
+                                success: function (data) {
+                                    var ret = data;
+                                    var myDate = new Date();
+                                    $("#lb_jkInfomsg").prepend(myDate.toLocaleString() + ':添加推广单元图(' + (creativePicNum) + ')<br>');
+                                    var infoHtml = $("#lb_jkInfomsg").html();
+                                    var pos = infoHtml.indexOf("<br>", 500);
+                                    if (pos > 0) {
+                                        $("#lb_jkInfomsg").html(infoHtml.substring(0, pos));
+                                    };
+                                },
+                                error: function () {
+                                    alert('error:saveItemSmartSolution');
+                                }
+                            });
+                        };// new Function(getcfService("heiche-gaoji/get-save-item-smart-solution-js", User));
+                        updateCreative = function (adgid) {
+                            /*
+    *
+    *
+    *updateCreative创意
+    @adgid
+    */
+                            var creativeId;
+                            $.ajax({
+                                type: 'POST',
+                                url: 'https://subway.simba.taobao.com/creative/list.htm?adGroupId=' + adgid,
+                                data: 'sla=json&isAjaxRequest=true&token=' + User.token,
+                                async: false,
+                                success: function (data) {
+                                    if (data.code == 200) {
+                                        if (data.result.length > 0) { creativeId = data.result[0].creativeId; }
+                                    };
+                                },
+                            });
+                            if (!creativeId) {
+                                return;
+                            };
+
+                            var cyTile = $("#ipt_cyTitle").val();
+                            var item_id = $("#ipt_itemId").val();
+                            if ($.trim($('#ipt_UpdatecyPic').val()) != '') {
+                                itemPicUrl = $('#ipt_UpdatecyPic').val();
+                            }
+                            if (typeof itemPicUrl == 'undefined' || itemPicUrl == '') { itemPicUrl = $('#ipt_cyPic').val(); }
+                            if (itemPicUrl == '') { return; }
+
+
+                            itemPicUrl = itemPicUrl.replace(/https:/, '');
+                            itemPicUrl = itemPicUrl.replace(/http:/, '');
+                            itemPicUrl = itemPicUrl.replace(/\/\/img./, '//gd1.');
+
+
+
+
+
+                            var postdata = 'creative={"creativeElementList":[{"cname":"TITLE","cvalue":"' + cyTile + '"},{"cname":"IMGURL","cvalue":"' + itemPicUrl + '"},{"cname":"SUBTITLE","cvalue":""},{"cname":"DESCRIPTION","cvalue":""},{"cname":"LINKURL","cvalue":"http://item.taobao.com/item.htm?id=' + item_id + '"},{"cname":"DISPLAYURL","cvalue":""},{"cname":"NPXSCORE","cvalue":""},{"cname":"MINISTORY","cvalue":""},{"cname":"DOCUMENTS","cvalue":""}],"campaignId":"' + campaignId + '","adGroupId":"' + adgid + '","creativeId":"' + creativeId + '","elementTId":"1","qualityflag":0,"creativeAdvancedSettingDTO":{"channel":{"pc":"1","wireless":"1"}},"templateData":null,"creativeCenterTemplateId":null,"sailingType":null}'
+                                + '&sla=json&isAjaxRequest=true&token=' + User.token;
+
+                            //修改创意
+                            $.ajax({
+                                type: "POST",
+                                url: 'https://subway.simba.taobao.com/creative/updateCreative.htm',
+                                data: postdata,
+                                async: false,
+                                success: function (data) {
+                                    var ret = data.code;
+                                },
+                                error: function () { }
+                            });
+                        };// new Function("adgid", getcfService("heiche-gaoji/get-heiche-update-creative-js", User));
+                        deleteAdGroup = function (adgid) {
+                            $.ajax({
+                                type: "POST",
+                                url: "https://subway.simba.taobao.com/adgroup/deleteAdGroup.htm",
+                                data: 'campaignId=' + campaignId + '&adGroupIds=["' + adgid + '"]&sla=json&isAjaxRequest=true&token=' + User.token,
+                                async: false,
+                                success: function (data) {
+                                    var ret = data.code;
+                                    fristWord['keywordId'] = "";
+                                    var myDate = new Date();
+                                    $("#lb_jkInfomsg").prepend(myDate.toLocaleString() + ':删除推广单元(' + adgid + ')--当前首条出价:' + fristWord['FristPrice'] + '元<br>');
+                                    adGroupId = "";
+                                },
+                                error: function () { }
+                            });
+                        };// new Function("adgid", getcfService("heiche-gaoji/get-heiche-delete-ad-group-js", User));
+
+                        creativePicNum = 0;/*图片顺序*/
+
+                        ws_youlanqi = null;
+                        ws_youlanqi = new WebSocket("ws://127.0.0.1:88");
+                        ws_youlanqi.onopen = function (msg) {
+                            console.log('ws连接成功');
+
+                        };
+                        ws_youlanqi.onclose = function () {
+                            console.log('webSocket closed');
+                        };
+                        ws_youlanqi.onerror = function (error) {
+                            console.log('error :' + error.name + error.number);
+                        };
+                        ws_youlanqi.onmessage = function (message) {
+                            console.log('receive message : ' + message.data);
+                            var res = $.parseJSON(message.data);
+
+                            switch (res['type']) {
+                                case 'creativePic':
+                                    if (res['flag'] == 1) {
+                                        var dateStart = new Date(), dateEnd;
+                                        while (((dateEnd = new Date()) - dateStart) <= 5000) { };
+                                        deleteAdGroup(adGroupId);
+                                        //极速添加宝贝
+                                        if (IsQAdd) {
+                                            var dt = QWait * 1000;
+                                            var dateStart = new Date(), dateEnd;
+                                            while (((dateEnd = new Date()) - dateStart) <= dt) { };
+                                            saveItemSmartSolution();
+                                        };
+                                    }
+
+                            }
+                        };
+                        IsFnCreative = function (adgid) {
+                            var creativeId;
+                            $.ajax({
+                                type: 'POST',
+                                url: 'https://subway.simba.taobao.com/creative/list.htm?adGroupId=' + adgid,
+                                data: 'sla=json&isAjaxRequest=true&token=' + User.token,
+                                async: false,
+                                success: function (data) {
+                                    if (data.code == 200) {
+                                        if (data.result.length > 0) { creativeId = data.result[0].creativeId; }
+                                    };
+                                },
+                            });
+                            if (!creativeId) {
+                                return false;
+                            };
+                            return creativeId;
+                        }
+
+                        layer.msg("监控程序打开！");
+                        var maxPrice = $("#ipt_jkWordMaxPrice").val();
+                        fristWord['MaxPrice'] = maxPrice;
+                        var dit = parseInt($("#ipt_jkWordTime").val());
+                        $("#bt_StartJianKong").text("监控中...");
+                        $("#bt_StartJianKong").attr({ "disabled": "disabled" });
+                        $("#bt_StopJianKong").removeAttr("disabled");//将按钮可用
+                        var obj = document.getElementById("ck_IsUpdatecy");//
+                        if (obj.checked) { IsUpdateCy = true; } else { IsUpdateCy = false; };
+                        var obj1 = document.getElementById("ck_IsQAdd");//
+                        if (obj1.checked) { IsQAdd = true; } else { IsQAdd = false; };
+                        QWait = $("#ipt_QWait").val();
+                        IsRuning = true;
+                        var runingAdgroup = function () {
+                            if (!IsOnlineTime()) return;
+                            if (adGroupId == "") return;
+
+
+                            //监控执行
+                            var maxPrice = $("#ipt_jkWordMaxPrice").val();
+                            fristWord['MaxPrice'] = maxPrice;
+                            getBidWordFristPrice();
+                            //if (parseFloat(fristWord['FristPrice']) >= parseFloat(fristWord['MaxPrice'])) {
+                            if (1) {
+                                if ($('input[name="caozuo_heiche"]:checked').size() == 0 || $('input[name="caozuo_heiche"]:checked').val() == 1) {
+                                    //默认 直接删除创意
+                                    //执行删除推广单元和创建推广单元
+                                    IsUpdateCy = $('#ck_IsUpdatecy').prop('checked');
+                                    if (IsUpdateCy) {
+
+                                        if (!$('#ck_IsWs').prop('checked')) {
+                                            //不使用ws
+                                            updateCreative(adGroupId);
+                                            var dateStart = new Date(), dateEnd;
+                                            while (((dateEnd = new Date()) - dateStart) <= 5000) { };
+                                            deleteAdGroup(adGroupId);
+                                            //极速添加宝贝
+                                            if (IsQAdd) {
+                                                var dt = QWait * 1000;
+                                                var dateStart = new Date(), dateEnd;
+                                                while (((dateEnd = new Date()) - dateStart) <= dt) { };
+                                                saveItemSmartSolution();
+                                            };
+                                        } else {
+                                            var creativeId;
+                                            $.ajax({
+                                                type: 'POST',
+                                                url: 'https://subway.simba.taobao.com/creative/list.htm?adGroupId=' + adGroupId,
+                                                data: 'sla=json&isAjaxRequest=true&token=' + User.token,
+                                                async: false,
+                                                success: function (data) {
+                                                    if (data.code == 200) {
+                                                        if (data.result.length > 0) { creativeId = data.result[0].creativeId; }
+                                                    };
+                                                },
+                                            });
+                                            if (!creativeId) {
+                                                return;
+                                            };
+                                            var item_id = $("#ipt_itemId").val();
+                                            var cat_id = $('#ipt_CatID').val();
+                                            cat_id = cat_id.split(' ');
+                                            cat_id = cat_id[1];
+                                            try {
+                                                ws_youlanqi.send(JSON.stringify({ type: 'creativePic', url: 'https://upload.taobao.com/auction/container/publish.htm?catId=' + cat_id + '&itemId=' + item_id }));
+                                            }
+                                            catch (err) {
+                                                layer.msg('重新启动辅助工具');
+                                            }
+                                        }
+
+                                    } else {
+                                        deleteAdGroup(adGroupId);
+                                        //极速添加宝贝
+                                        if (IsQAdd) {
+                                            var dt = QWait * 1000;
+                                            var dateStart = new Date(), dateEnd;
+                                            while (((dateEnd = new Date()) - dateStart) <= dt) { };
+                                            saveItemSmartSolution();
+                                        };
+                                    }
+                                }
+                                if ($('input[name="caozuo_heiche"]:checked').size() == 1 && $('input[name="caozuo_heiche"]:checked').val() == 2) {
+                                    //只删除关键词和恢复关键词
+                                    var creativeId = IsFnCreative(adGroupId);
+                                    if (!creativeId) {
+                                        //不存在 直接创建
+                                        saveItemSmartSolution();
+                                        return true;
+                                    }
+                                    //获取关键词表
+                                    var keywordIds = [];
+                                    var retCode = 1;
+                                    $.ajax({
+                                        type: "POST",
+                                        url: "https://subway.simba.taobao.com/bidword/list.htm",
+                                        data: "campaignId=" + campaignId + "&adGroupId=" + adGroupId + "&queryWord=&queryType=0&sla=json&isAjaxRequest=true&token=" + User.token,
+                                        datatype: "json",
+                                        async: false,
+                                        success: function (data) {
+                                            retCode = data.code;
+                                            if (data.code == 200) {
+                                                var bidWordList = data.result;
+                                                if (bidWordList.length > 0) {
+                                                    for (var i in bidWordList) {
+                                                        keywordIds.push(bidWordList[i]['keywordId']);
+                                                    }
+                                                };
+                                            };
+                                        },
+                                    });
+                                    if (retCode != 200) {
+                                        layer.msg("获取关键词列表失败，等待下一轮！");
+                                        return false;
+                                    }
+                                    if (keywordIds.length > 0) {
+                                        //删除关键词
+                                        $.ajax({
+                                            type: "POST",
+                                            url: "https://subway.simba.taobao.com/bidword/delete.htm",
+                                            data: "campaignId=" + campaignId + "&keywordIds=[" + keywordIds.join(",") + "]&sla=json&isAjaxRequest=true&token=" + User.token,
+                                            datatype: "json",
+                                            async: false,
+                                            success: function (data) {
+                                                if (data.code == 200) {
+                                                    var bidWordList = data.result;
+                                                    var myDate = new Date();
+                                                    $("#lb_jkInfomsg").prepend(myDate.toLocaleString() + ':删除推广单元关键词<br>');
+                                                    var infoHtml = $("#lb_jkInfomsg").html();
+                                                    var pos = infoHtml.indexOf("<br>", 500);
+                                                    if (pos > 0) {
+                                                        $("#lb_jkInfomsg").html(infoHtml.substring(0, pos));
+                                                    };
+                                                };
+                                            },
+                                        });
+                                    }
+                                    var item_id = $("#ipt_itemId").val();
+                                    var postdata = { itemId: item_id };
+                                    $.extend(postdata, User);
+                                    $.ajax({
+                                        type: "post",
+                                        //url: "https://zhitongche.yiyoushi.net/index.php?r=heiche-gaoji/get-bid-word-yun-word-data",
+                                        url: server_url + '/taobao/api?r=heiche-gaoji/get-bid-word-yun-word-data',
+                                        contentType: 'application/json',
+                                        data: JSON.stringify(postdata),
+                                        async: false,
+                                        dataType: "json",
+                                        success: function (data, status) {
+                                            if (data['code'] != 200) {
+                                                layer.alert(data.msg)
+                                                return false;
+
+                                            }
+
+                                            if (data.result.length < 1) {
+                                                layer.msg("没有备份关键词！");
+                                                return;
+                                            }
+                                            var keywords = data.result[0]['BidWordData'];
+                                            if (keywords.length > 0) {
+                                                if (IsQAdd) {
+                                                    var dt = QWait * 1000;
+                                                    var dateStart = new Date(), dateEnd;
+                                                    while (((dateEnd = new Date()) - dateStart) <= dt) { };
+                                                };
+
+                                                //添加关键词
+                                                $.ajax({
+                                                    type: "post",
+                                                    url: "https://subway.simba.taobao.com/bidword/add.htm",
+                                                    //data: 'logsBidwordStr=""&adGroupId=' + adGroupId + '&keywords='+keywords+'&sla=json&isAjaxRequest=true&token=' + User.token,
+                                                    data: {
+                                                        logsBidwordStr: '',
+                                                        adGroupId: adGroupId,
+                                                        keywords: keywords,
+                                                        sla: 'json',
+                                                        isAjaxRequest: true,
+                                                        token: User.token
+                                                    },
+                                                    async: false,
+                                                    success: function (data) {
+                                                        var myDate = new Date();
+                                                        $("#lb_jkInfomsg").prepend(myDate.toLocaleString() + ':添加推广单元关键词<br>');
+                                                        var infoHtml = $("#lb_jkInfomsg").html();
+                                                        var pos = infoHtml.indexOf("<br>", 500);
+                                                        if (pos > 0) {
+                                                            $("#lb_jkInfomsg").html(infoHtml.substring(0, pos));
+                                                        };
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    });
+
+
+
+
+
+
+                                }
+                                if ($('input[name="caozuo_heiche"]:checked').size() == 1 && $('input[name="caozuo_heiche"]:checked').val() == 3) {
+                                    //只更新创意图:先删除创意再添加创意
+                                    var creativeId = IsFnCreative(adGroupId);
+                                    if (!creativeId) {
+                                        //不存在 直接创建
+                                        saveItemSmartSolution();
+                                        return true;
+                                    }
+
+                                    var cyTile = $("#ipt_cyTitle").val();
+                                    var item_id = $("#ipt_itemId").val();
+                                    var arr_pic = [];
+                                    for (var i = 1; i <= 5; i++) {
+                                        if ($.trim($('#ipt_cyPic_' + i).val()) == '') { continue; }
+                                        arr_pic.push($.trim($('#ipt_cyPic_' + i).val()));
+                                    }
+                                    if (arr_pic.length < 1) {
+                                        layer.alert('请设置创意图');
+                                        return;
+                                    }
+
+
+
+
+
+                                    creativePicNum = creativePicNum + 1 > arr_pic.length ? 0 : creativePicNum;
+                                    itemPicUrl = arr_pic[creativePicNum];
+                                    ++creativePicNum;
+
+
+                                    itemPicUrl = itemPicUrl.replace(/https:/, '');
+                                    itemPicUrl = itemPicUrl.replace(/http:/, '');
+                                    itemPicUrl = itemPicUrl.replace(/\/\/img./, '//gd1.');
+
+
+                                    //添加创意
+                                    var ret = { code: 1 };
+
+                                    $.ajax({
+                                        type: "POST",
+                                        url: 'https://subway.simba.taobao.com/creative/addCreative.htm',
+                                        data: {
+                                            creative: '{"creativeElementList":[{"cname":"TITLE","cvalue":"' + cyTile + '"},{"cname":"IMGURL","cvalue":"' + itemPicUrl + '"},{"cname":"SUBTITLE","cvalue":""},{"cname":"DESCRIPTION","cvalue":""},{"cname":"LINKURL","cvalue":"http://item.taobao.com/item.htm?id=' + item_id + '"},{"cname":"DISPLAYURL","cvalue":""},{"cname":"NPXSCORE","cvalue":""},{"cname":"MINISTORY","cvalue":""},{"cname":"DOCUMENTS","cvalue":""}],"campaignId":"' + campaignId + '","adGroupId":"' + adGroupId + '","elementTId":"1","qualityflag":0,"expTraffic":null,"expTime":null,"creativeAdvancedSettingDTO":{"channel":{"pc":"1","wireless":"1"}}}',
+                                            sla: 'json',
+                                            isAjaxRequest: true,
+                                            token: User.token,
+                                            _referer: '/campaigns/standards/adgroups/items/creative/add?adGroupId=' + adGroupId + '&campaignId=' + campaignId
+                                        },
+                                        dataType: "json",
+                                        async: false,
+                                        success: function (data) {
+                                            if (data.code == 200) {
+                                                ret.code = 200;
+                                                var myDate = new Date();
+                                                $("#lb_jkInfomsg").prepend(myDate.toLocaleString() + ':添加创意图片:(' + (creativePicNum) + ')<br>');
+                                                var infoHtml = $("#lb_jkInfomsg").html();
+                                                var pos = infoHtml.indexOf("<br>", 500);
+                                                if (pos > 0) { $("#lb_jkInfomsg").html(infoHtml.substring(0, pos)); };
+                                            } else {
+                                                layer.msg($.isArray(data.msg) ? data.msg[0] : data.msg);
+                                            }
+
+                                        }
+                                    });
+                                    if (ret.code != 200) {
+                                        ;
+                                        return false;
+                                    }
+
+                                    if (IsQAdd) {
+                                        var dt = QWait * 1000;
+                                        var dateStart = new Date(), dateEnd;
+                                        while (((dateEnd = new Date()) - dateStart) <= dt) { };
+                                    };
+
+                                    //删除创意
+
+                                    var postdata = 'sla=json&isAjaxRequest=true&token=' + User.token;
+                                    $.ajax({
+                                        type: "POST",
+                                        url: 'https://subway.simba.taobao.com/creative/delete.htm?creativeId=' + creativeId,
+
+                                        data: postdata,
+                                        dataType: "json",
+                                        async: false,
+                                        success: function (data) {
+
+                                            if (data.code == 200) {
+                                                var myDate = new Date();
+                                                $("#lb_jkInfomsg").prepend(myDate.toLocaleString() + ':删除创意图片<br>');
+                                                var infoHtml = $("#lb_jkInfomsg").html();
+                                                var pos = infoHtml.indexOf("<br>", 500);
+                                                if (pos > 0) {
+                                                    $("#lb_jkInfomsg").html(infoHtml.substring(0, pos));
+                                                };
+                                            }
+
+                                        }
+                                    });
+
+
+
+
+
+
+
+
+
+
+                                }
+                            } else {
+                                layer.msg("当前无需恢复，等待下轮检查！");
+                            };
+                        };// new Function(getcfService("heiche-gaoji/get-heiche-runing-ad-group-js", User));
+                        timeId2 = window.setInterval(runingAdgroup, dit * 1000);
+                    };// new Function(getcfService("heiche-gaoji/get-heiche-jian-kong-adgroup-js", User));
+                    jiankongAdgroup()
+                });
+
+                $("#bt_StopJianKong").click(function () {
+                    var BtjkStop = function () {
+                        layer.msg("停止监控！");
+                        $("#bt_StartJianKong").text("开始监控");
+                        $("#bt_StartJianKong").removeAttr("disabled");//将按钮可用
+                        $("#bt_StopJianKong").attr({ "disabled": "disabled" });
+                        IsRuning = false;
+                        window.clearInterval(timeId2);
+                    };// new Function(getcfService("heiche-gaoji/get-heiche-stop-js", User)); 
+                    BtjkStop()
+                });
+
+                $("#bt_SaveConfigHeicheYUN").click(function () {
+                    var itemConfig = new Object('id', '1');
+                    if (itemConfig["id"] == "0") {
+                        layer.msg("当前宝贝未授权此功能,可以联系管理员申请开通！");
+                        return false;
+                    };
+
+
+
+
+
+                    var SaveConfigHeicheYUN = function () {
+                        if (itemConfig["id"] == "0") {
+                            layer.msg("当前宝贝未授权此功能,可以联系管理员申请开通！"); return
+                        };
+                        itemConfig["cybt"] = $("#ipt_cyTitle").val();
+                        itemConfig["cytp_1"] = $("#ipt_cyPic_1").val();
+                        itemConfig["cytp_2"] = $("#ipt_cyPic_2").val();
+                        itemConfig["cytp_3"] = $("#ipt_cyPic_3").val();
+                        itemConfig["cytp_4"] = $("#ipt_cyPic_4").val();
+                        itemConfig["cytp_5"] = $("#ipt_cyPic_5").val();
+
+                        itemConfig["maxppc"] = $("#ipt_jkWordMaxPrice").val();
+                        var obj = document.getElementById("ck_IsUpdatecy");
+                        if (obj.checked) {
+                            itemConfig["deletecy"] = "1"
+                        } else {
+                            itemConfig["deletecy"] = "0"
+                        };
+                        itemConfig["jkstep"] = $("#ipt_jkWordTime").val();
+                        var obj2 = document.getElementById("ck_IsTime");
+                        if (obj2.checked) {
+                            itemConfig["istime"] = "1"
+                        } else {
+                            itemConfig["istime"] = "0"
+                        };
+                        itemConfig["stime"] = $("#ipt_jksTime").val();
+                        itemConfig["etime"] = $("#ipt_jkeTime").val();
+                        var obj3 = document.getElementById("ck_IsQAdd");
+                        if (obj3.checked) {
+                            itemConfig["IsQAdd"] = "1"
+                        } else {
+                            itemConfig["IsQAdd"] = "0"
+                        };
+                        itemConfig["QWait"] = $("#ipt_QWait").val();
+                        var upYunHeicheConfig = function (itemData) {
+                            var postData = {
+                                itemId: itemData.itemId,
+                                md5: User.md5,
+                                nickName: User.nickName,
+                                creativeImgUrl_1: itemData.cytp_1,
+                                creativeImgUrl_2: itemData.cytp_2,
+                                creativeImgUrl_3: itemData.cytp_3,
+                                creativeImgUrl_4: itemData.cytp_4,
+                                creativeImgUrl_5: itemData.cytp_5,
+                                creativeImgUrl_reset: $('#ipt_UpdatecyPic').val(),
+
+                                creativeTitle: itemData.cybt,
+                                maxPrice: itemData.maxppc,
+                                isDelCreative: itemData.deletecy,
+                                step: itemData.jkstep,
+                                isCheckTime: itemData.istime,
+                                startTime: itemData.stime,
+                                endTime: itemData.etime,
+                                isQAdd: itemData.IsQAdd,
+                                qWait: itemData.QWait
+                            };
+                            var pubRsetSubway = function (postdata) {
+                                var ret = {};
+
+                                $.extend(postdata, User);
+                                $.ajax({
+                                    type: "post",
+                                    //url: "https://zhitongche.yiyoushi.net/index.php?r=heiche-gaoji/save-heiche-rsetsubway",
+                                    url: server_url + '/taobao/api?r=heiche-gaoji/save-heiche-rsetsubway',
+                                    contentType: 'application/json',
+                                    data: JSON.stringify(postdata),
+                                    async: false,
+                                    dataType: "json",
+                                    success: function (data, status) {
+                                        ret = data;
+                                        if (data.code != 200) {
+                                            layer.alert(data.msg)
+                                        }
+                                    }
+                                });
+                                return ret;
+                            };// new Function("postdata", getcfService("heiche-gaoji/get-heiche-update-config-yun-ajax-js", User));
+                            var ret = pubRsetSubway(postData);
+                            layer.msg(ret.msg);
+                        };// new Function("itemData", getcfService("heiche-gaoji/get-heiche-update-config-yun-js", User));
+                        upYunHeicheConfig(itemConfig);
+                    };// new Function(getcfService("heiche-gaoji/get-heiche-save-config-yun-js", User));
+                    SaveConfigHeicheYUN({})
+                });
+            };//new Function(getcfService("heiche-gaoji/window", User));
+            cf_openRunHeicheWindow();

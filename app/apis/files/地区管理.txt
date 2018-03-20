@@ -1,0 +1,74 @@
+var strUI = '<div style="padding: 15px; line-height: 22px; background-color: #fff; color: #000;">' + '<div id="uaList" style="height:330px">' + '<span id="ua01">' + '青色分线 <button class="layui-btn layui-btn-mini layui-btn-normal">应用到当前计划</button><button class="layui-btn layui-btn-mini layui-btn-danger">删除</button>' + '<hr class="layui-bg-cyan">' + '</span>' + '<span id="ua02">' + '青色分割线 <button class="layui-btn layui-btn-mini layui-btn-normal">应用到当前计划</button><button class="layui-btn layui-btn-mini layui-btn-danger">删除</button>' + '<hr class="layui-bg-cyan">' + '</span>' + '</div>' + '<button class="layui-btn layui-btn-small layui-btn-normal" id="BakUserAreaBt">备份当前计划地区</button>' + '</div>';
+                layer.open({
+                    type: 1,
+                    content: strUI,
+                    area: ['600px', '450px'],
+                    anim: 0,
+                    title: ['计划地区管理', 'font-size:18px;'],
+                    success: function (layero, index) {
+                        var GetUserAreaList = function (postData) {
+                            var ret = new Array();
+                            $.ajax({
+                                type: "post",
+                                //url: "https://zhitongche.libangjie.com/index.php?r=site/get-area-yun-data",
+                                url: server_url + '/taobao/api?r=site/get-area-yun-data',
+                                contentType: "application/json",
+                                data: JSON.stringify(User),
+                                async: false, dataType: "json",
+                                success: function (data) {
+                                    if (data.code == 200) {
+                                        ret = data.result;
+                                    } else {
+                                        layer.msg(data.msg);
+                                    };
+                                }
+                            });
+                            return ret;
+                        };// new Function("postData", getcfService("site/get-area-yun-data-js", User));
+                        var aList = GetUserAreaList();
+                        //var SetUserAreaList = new Function("aList", getcfService("site/set-area-yun-data-js", User));
+                        app.SetUserAreaList(aList);
+                    }
+                });
+
+                $("#BakUserAreaBt").click(function () {
+                    var camId = getUriInfo().campaignId;
+                    if (camId == null) {
+                        layer.msg("进入页面以后再备份地区数据！");
+                        return;
+                    };
+                    var AreaGet = function (campaignId) {
+                        var ret = "";
+                        var postUrl = "https://subway.simba.taobao.com/area/get.htm?campaignId=" + campaignId;
+                        $.ajax({
+                            type: "Post", url: postUrl, data: "sla=json&isAjaxRequest=true&token=" + User.token,
+                            dataType: "json", async: false, success: function (data) { ret = data.result.areaState; }, error: function () { }
+                        });
+                        return ret;
+                    };// new Function("campaignId", getcfService("site/subway-get-area-js", User));
+                    var areaStr = AreaGet(camId);
+                    layer.prompt({
+                        formType: 0, title: '请输入备份名称'
+                    }, function (value, index, elem) {
+                        var aData = { "Title": value, "Cnt": areaStr };
+                        $.extend(aData, User);
+                        var SaveUserArea = function (postData) {
+                            var ret = new Array();
+                            $.ajax({
+                                type: "post",
+                                //url: "https://zhitongche.libangjie.com/index.php?r=site/save-area-yun-data",
+                                url: server_url + '/taobao/api?r=site/save-area-yun-data',
+                                contentType: "application/json",
+                                data: JSON.stringify(postData),
+                                async: false, dataType: "json",
+                                success: function (data, status) { if (data.code == 200) { ret = data.result; }; }
+                            });
+                            return ret;
+
+                        };// new Function("postData", getcfService("site/save-area-yun-data-js", User));
+                        var aList = SaveUserArea(aData);
+                        //var SetUserAreaList = new Function("aList", getcfService("site/set-area-yun-data-js", User));
+                        app.SetUserAreaList(aList);
+                        layer.close(index);
+                    });
+                });
